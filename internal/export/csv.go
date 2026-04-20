@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/nettas12/f5xc-sec-events/internal/api"
+	"github.com/Nettas/f5xc-sec-events/internal/api"
 )
 
 // WriteCSV serialises events to w in CSV format.

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nettas12/f5xc-sec-events/internal/api"
-	"github.com/nettas12/f5xc-sec-events/internal/config"
+	"github.com/Nettas/f5xc-sec-events/internal/api"
+	"github.com/Nettas/f5xc-sec-events/internal/config"
 )
 
 // ── Test helpers ──────────────────────────────────────────────────────────────

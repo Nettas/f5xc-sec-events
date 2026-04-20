@@ -9,10 +9,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/nettas12/f5xc-sec-events/internal/api"
-	"github.com/nettas12/f5xc-sec-events/internal/config"
-	"github.com/nettas12/f5xc-sec-events/internal/export"
-	"github.com/nettas12/f5xc-sec-events/web"
+	"github.com/Nettas/f5xc-sec-events/internal/api"
+	"github.com/Nettas/f5xc-sec-events/internal/config"
+	"github.com/Nettas/f5xc-sec-events/internal/export"
+	"github.com/Nettas/f5xc-sec-events/web"
 )
 
 func main() {

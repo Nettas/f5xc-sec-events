@@ -1,3 +1,3 @@
-module github.com/nettas12/f5xc-sec-events
+module github.com/Nettas/f5xc-sec-events
 
 go 1.22

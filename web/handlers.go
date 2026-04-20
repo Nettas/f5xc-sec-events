@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/nettas12/f5xc-sec-events/internal/api"
-	"github.com/nettas12/f5xc-sec-events/internal/export"
+	"github.com/Nettas/f5xc-sec-events/internal/api"
+	"github.com/Nettas/f5xc-sec-events/internal/export"
 )
 
 // clientForRequest resolves the API client and namespace for a single HTTP request.
