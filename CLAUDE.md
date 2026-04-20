@@ -64,4 +64,5 @@ F5XC_API_KEY=xxx /home/coder/go/bin/go run ./cmd/f5xc-sec --serve --port 8080
 - Web server starts without env key: `./bin/f5xc-sec --serve --port 8080` → paste key in browser
 - GET /api/config seeds namespace field from server config; user can override freely
 - CLI/export still require F5XC_API_KEY env var
-- Live API confirmed 2026-04-20: vh_name filter, double-encoded events, string lat/lon, int64 timestamps
+- Live API confirmed 2026-04-20: vh_name filter, double-encoded events, string lat/lon, int64 timestamps, string score fields
+- If new 502 errors appear: check models.go field type — API sends many numeric-looking fields as JSON strings

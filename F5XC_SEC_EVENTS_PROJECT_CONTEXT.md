@@ -486,4 +486,22 @@ Root cause of zero events was confirmed against live API (namespace: s-iannetta)
 
 All 20 tests pass. go build + go vet clean.
 
+---
+Score Field Type Fix — 2026-04-20 (follow-up)
+
+All nine float64 score fields in SecurityEvent caused 502 unmarshal errors because the live API
+sends them as JSON strings, not numbers. Fixed by changing all to Go `string`:
+
+  suspicion_score, waf_suspicion_score, bot_defense_suspicion_score,
+  behavior_anomaly_score, feature_score, ip_reputation_suspicion_score,
+  forbidden_access_suspicion_score, failed_login_suspicion_score, rate_limit_suspicion_score
+
+csv.go updated: score fields written directly (no %g formatting needed).
+Test mock events updated to use string literals for these fields.
+All 20 tests pass. go build + go vet clean.
+
+OUTSTANDING RISK: int count fields (req_count, waf_sec_event_count, err_count, etc.) are
+still typed as Go `int`. If a 502 "cannot unmarshal string into int" appears, change those
+to `string` in models.go using the same pattern.
+
 Last updated: 2026-04-20. ALL PROMPTS COMPLETE + UI settings + namespace switching + live API fixes.

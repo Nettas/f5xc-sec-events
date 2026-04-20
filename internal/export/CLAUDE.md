@@ -15,14 +15,15 @@ severity, virtual_host, req_id) were removed — they do not exist in the live A
 - Use encoding/csv (stdlib only, no third-party libs)
 - WriteCSV(w io.Writer, events []api.SecurityEvent) error
 - Must flush the csv.Writer before returning
-- Float fields use fmt.Sprintf("%g", ...) — omits trailing zeros
+- Score fields (suspicion_score, waf_suspicion_score) are Go `string` — written directly, no formatting
+- Count fields (waf_sec_event_count, req_count) are Go `int` — use fmt.Sprintf("%d", ...)
 
 ## Implementation Status: COMPLETE
 
 ### csv.go — DONE
 - `WriteCSV(w io.Writer, events []api.SecurityEvent) error`
 - Writes header row then one row per event; calls `cw.Flush()` and returns `cw.Error()`
-- Numeric fields: `%g` for floats, `%d` for ints
+- Score fields written as-is (already strings from API); count fields use `%d`
 - Integrated into `web/handlers.go` exportHandler
 
 ### csv_test.go — DONE

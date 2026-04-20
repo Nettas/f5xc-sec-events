@@ -31,10 +31,16 @@ Auth: Header → Authorization: APIToken <F5XC_API_KEY>
 - Query format: backtick template `{vh_name="%s"}` — NOT %q (no Go escaping)
 - vh_name pattern: `ves-io-{namespace}-{lb-name}` e.g. `ves-io-s-iannetta-webuiaz`
 
-## Known Field Type Quirks (live API)
-- `latitude`, `longitude` — sent as JSON strings, not numbers → typed as string in struct
-- `start_time`, `end_time` in SecurityEvent — sent as Unix epoch int64, not RFC3339 strings
-- Request body `start_time`/`end_time` (eventsRequest) — still RFC3339 strings as required by the API
+## Known Field Type Quirks (live API — all confirmed 2026-04-20)
+- `latitude`, `longitude` — JSON string (not number) → Go `string`
+- `start_time`, `end_time` in SecurityEvent payload — Unix epoch number → Go `int64`
+- Request body `start_time`/`end_time` (eventsRequest) — RFC3339 string (API requirement)
+- ALL score fields — JSON string (not number) → Go `string`:
+    suspicion_score, waf_suspicion_score, bot_defense_suspicion_score,
+    behavior_anomaly_score, feature_score, ip_reputation_suspicion_score,
+    forbidden_access_suspicion_score, failed_login_suspicion_score, rate_limit_suspicion_score
+- Count fields (`req_count`, `waf_sec_event_count`, `err_count`, etc.) — still `int`, unconfirmed
+  If a 502 "cannot unmarshal string into int" appears, change those to string too.
 
 ## Implementation Status: COMPLETE
 - models.go: SecurityEvent (50+ real fields), EventsResponse{RawEvents []string}, eventsRequest
