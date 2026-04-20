@@ -9,15 +9,13 @@ import (
 )
 
 // WriteCSV serialises events to w in CSV format.
-// Columns: time, src_ip, method, req_path, response_code, waf_action,
-//
-//	attack_type, severity, virtual_host, req_id
 func WriteCSV(w io.Writer, events []api.SecurityEvent) error {
 	cw := csv.NewWriter(w)
 
 	header := []string{
-		"time", "src_ip", "method", "req_path", "response_code",
-		"waf_action", "attack_type", "severity", "virtual_host", "req_id",
+		"time", "src_ip", "country", "city", "vh_name", "app_type",
+		"threat_level", "suspicion_score", "waf_sec_event_count", "req_count",
+		"waf_suspicion_score", "summary_msg", "namespace", "tenant",
 	}
 	if err := cw.Write(header); err != nil {
 		return fmt.Errorf("write CSV header: %w", err)
@@ -27,14 +25,18 @@ func WriteCSV(w io.Writer, events []api.SecurityEvent) error {
 		row := []string{
 			e.Time,
 			e.SrcIP,
-			e.Method,
-			e.ReqPath,
-			fmt.Sprintf("%d", e.ResponseCode),
-			e.WAFAction,
-			e.AttackType,
-			e.Severity,
-			e.VirtualHost,
-			e.ReqID,
+			e.Country,
+			e.City,
+			e.VhName,
+			e.AppType,
+			e.ThreatLevel,
+			fmt.Sprintf("%g", e.SuspicionScore),
+			fmt.Sprintf("%d", e.WafSecEventCount),
+			fmt.Sprintf("%d", e.ReqCount),
+			fmt.Sprintf("%g", e.WafSuspicionScore),
+			e.SummaryMsg,
+			e.Namespace,
+			e.Tenant,
 		}
 		if err := cw.Write(row); err != nil {
 			return fmt.Errorf("write CSV row: %w", err)

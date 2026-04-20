@@ -2,16 +2,54 @@ package api
 
 // SecurityEvent represents a single WAF/security event from the F5 XC API.
 type SecurityEvent struct {
-	Time         string `json:"time"`
-	SrcIP        string `json:"src_ip"`
-	ReqPath      string `json:"req_path"`
-	Method       string `json:"method"`
-	ResponseCode int    `json:"response_code"`
-	ReqID        string `json:"req_id"`
-	WAFAction    string `json:"waf_action"`
-	AttackType   string `json:"attack_type"`
-	Severity     string `json:"severity"`
-	VirtualHost  string `json:"virtual_host"`
+	Timestamp                     string  `json:"@timestamp"`
+	Time                          string  `json:"time"`
+	StartTime                     string  `json:"start_time"`
+	EndTime                       string  `json:"end_time"`
+	Namespace                     string  `json:"namespace"`
+	Tenant                        string  `json:"tenant"`
+	SrcIP                         string  `json:"src_ip"`
+	Country                       string  `json:"country"`
+	City                          string  `json:"city"`
+	Region                        string  `json:"region"`
+	ASN                           string  `json:"asn"`
+	Network                       string  `json:"network"`
+	Latitude                      float64 `json:"latitude"`
+	Longitude                     float64 `json:"longitude"`
+	VhName                        string  `json:"vh_name"`
+	AppType                       string  `json:"app_type"`
+	App                           string  `json:"app"`
+	Site                          string  `json:"site"`
+	Hostname                      string  `json:"hostname"`
+	ClusterName                   string  `json:"cluster_name"`
+	SummaryMsg                    string  `json:"summary_msg"`
+	Message                       string  `json:"message"`
+	MessageID                     string  `json:"messageid"`
+	MessageKey                    string  `json:"message_key"`
+	SecEventType                  string  `json:"sec_event_type"`
+	SuspicionLogType              string  `json:"suspicion_log_type"`
+	Stream                        string  `json:"stream"`
+	User                          string  `json:"user"`
+	ThreatLevel                   string  `json:"threat_level"`
+	SuspicionScore                float64 `json:"suspicion_score"`
+	WafSuspicionScore             float64 `json:"waf_suspicion_score"`
+	BotDefenseSuspicionScore      float64 `json:"bot_defense_suspicion_score"`
+	BehaviorAnomalyScore          float64 `json:"behavior_anomaly_score"`
+	FeatureScore                  float64 `json:"feature_score"`
+	IpReputationSuspicionScore    float64 `json:"ip_reputation_suspicion_score"`
+	ForbiddenAccessSuspicionScore float64 `json:"forbidden_access_suspicion_score"`
+	FailedLoginSuspicionScore     float64 `json:"failed_login_suspicion_score"`
+	RateLimitSuspicionScore       float64 `json:"rate_limit_suspicion_score"`
+	WafSecEventCount              int     `json:"waf_sec_event_count"`
+	BotDefenseSecEventCount       int     `json:"bot_defense_sec_event_count"`
+	ReqCount                      int     `json:"req_count"`
+	ErrCount                      int     `json:"err_count"`
+	FailedLoginCount              int     `json:"failed_login_count"`
+	ForbiddenAccessCount          int     `json:"forbidden_access_count"`
+	PageNotFoundCount             int     `json:"page_not_found_count"`
+	RateLimitingCount             int     `json:"rate_limiting_count"`
+	ApiepAnomaly                  string  `json:"apiep_anomaly"`
+	OriginalTopicName             string  `json:"original_topic_name"`
 }
 
 // EventsResponse is the top-level response envelope from the F5 XC events API.

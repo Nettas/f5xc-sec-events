@@ -21,26 +21,34 @@ var mockF5Response = `{
     {
       "time": "2026-04-16T10:00:00Z",
       "src_ip": "1.2.3.4",
-      "req_path": "/admin",
-      "method": "GET",
-      "response_code": 403,
-      "req_id": "req-001",
-      "waf_action": "BLOCK",
-      "attack_type": "SQL_INJECTION",
-      "severity": "HIGH",
-      "virtual_host": "my-lb"
+      "country": "US",
+      "city": "New York",
+      "vh_name": "ves-io-test-ns-my-lb",
+      "app_type": "web",
+      "threat_level": "high",
+      "suspicion_score": 85.5,
+      "waf_sec_event_count": 3,
+      "req_count": 10,
+      "waf_suspicion_score": 75.0,
+      "summary_msg": "SQL injection attempt",
+      "namespace": "test-ns",
+      "tenant": "f5-sa"
     },
     {
       "time": "2026-04-16T10:05:00Z",
       "src_ip": "5.6.7.8",
-      "req_path": "/login",
-      "method": "POST",
-      "response_code": 200,
-      "req_id": "req-002",
-      "waf_action": "ALLOW",
-      "attack_type": "",
-      "severity": "LOW",
-      "virtual_host": "my-lb"
+      "country": "GB",
+      "city": "London",
+      "vh_name": "ves-io-test-ns-my-lb",
+      "app_type": "web",
+      "threat_level": "low",
+      "suspicion_score": 10.0,
+      "waf_sec_event_count": 0,
+      "req_count": 5,
+      "waf_suspicion_score": 0,
+      "summary_msg": "",
+      "namespace": "test-ns",
+      "tenant": "f5-sa"
     }
   ]
 }`
@@ -131,8 +139,8 @@ func TestEventsHandler_ReturnsJSONArray(t *testing.T) {
 	if events[0].SrcIP != "1.2.3.4" {
 		t.Errorf("events[0].SrcIP = %q, want 1.2.3.4", events[0].SrcIP)
 	}
-	if events[1].WAFAction != "ALLOW" {
-		t.Errorf("events[1].WAFAction = %q, want ALLOW", events[1].WAFAction)
+	if events[1].VhName != "ves-io-test-ns-my-lb" {
+		t.Errorf("events[1].VhName = %q, want ves-io-test-ns-my-lb", events[1].VhName)
 	}
 }
 
@@ -260,8 +268,9 @@ func TestExportHandler_CSVHasHeaderAndRows(t *testing.T) {
 		t.Fatalf("got %d CSV rows, want at least 3 (header + 2 events)", len(rows))
 	}
 	// Verify header columns
-	wantCols := []string{"time", "src_ip", "method", "req_path", "response_code",
-		"waf_action", "attack_type", "severity", "virtual_host", "req_id"}
+	wantCols := []string{"time", "src_ip", "country", "city", "vh_name", "app_type",
+		"threat_level", "suspicion_score", "waf_sec_event_count", "req_count",
+		"waf_suspicion_score", "summary_msg", "namespace", "tenant"}
 	for i, col := range wantCols {
 		if rows[0][i] != col {
 			t.Errorf("CSV header[%d] = %q, want %q", i, rows[0][i], col)

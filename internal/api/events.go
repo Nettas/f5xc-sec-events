@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -30,7 +31,7 @@ func (c *Client) FetchEvents(ctx context.Context, namespace, lbName, window stri
 
 	query := ""
 	if lbName != "" {
-		query = fmt.Sprintf("{virtual_host=%q}", lbName)
+		query = fmt.Sprintf(`{vh_name="%s"}`, lbName)
 	}
 
 	reqBody := eventsRequest{
@@ -44,6 +45,8 @@ func (c *Client) FetchEvents(ctx context.Context, namespace, lbName, window stri
 	if err != nil {
 		return nil, fmt.Errorf("marshal request body: %w", err)
 	}
+
+	fmt.Fprintf(os.Stderr, "[DEBUG] request body: %s\n", bodyBytes)
 
 	var url string
 	if c.baseURL != "" {
@@ -72,6 +75,8 @@ func (c *Client) FetchEvents(ctx context.Context, namespace, lbName, window stri
 	if err != nil {
 		return nil, fmt.Errorf("read response body: %w", err)
 	}
+
+	fmt.Fprintf(os.Stderr, "[DEBUG] response status: %d\n[DEBUG] response body: %s\n", resp.StatusCode, respBytes)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("F5 XC API returned HTTP %d: %s", resp.StatusCode, string(respBytes))
