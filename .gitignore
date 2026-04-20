@@ -1,0 +1,10 @@
+.env
+*.env
+bin/
+vendor/
+.npm/
+.npm-global/
+.cache/
+node_modules/
+*.tar.gz
+*.exe

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>F5 XC Security Events</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
+          integrity="sha512-ZwR1/gSZM3ai6vCdI+LVF1zSq/5HznD3oD+sCoJrzXJ+yKApiclScxlIzmMkBgKQ6M2jUGpkJvB7X0DqkIIAA=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+
+  <!-- Loading overlay -->
+  <div id="loading" class="loading-overlay hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Error / status banner -->
+  <div id="error-banner" class="error-banner hidden">
+    <span id="error-text"></span>
+    <button onclick="dismissError()">✕</button>
+  </div>
+
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-f5">F5</span><span class="brand-xc"> XC</span>
+        <div class="brand-sub">Security Events</div>
+      </div>
+
+      <nav class="nav">
+
+        <!-- ── Connection ───────────────────────────────── -->
+        <div class="nav-label">Connection</div>
+
+        <div class="key-row">
+          <input id="api-key-input"
+                 class="lb-input"
+                 type="password"
+                 placeholder="Paste API key…"
+                 autocomplete="off"
+                 oninput="onSettingsChange()" />
+          <button class="show-hide-btn" id="show-hide-btn"
+                  onclick="toggleKeyVisibility()" title="Show / hide key">
+            <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+
+        <input id="namespace-input"
+               class="lb-input"
+               type="text"
+               placeholder="Namespace (e.g. s-iannetta)"
+               style="margin-top:6px;"
+               oninput="onSettingsChange()" />
+
+        <div id="key-status" class="key-status key-missing">No API key set</div>
+
+        <!-- ── Time Window ──────────────────────────────── -->
+        <div class="nav-label" style="margin-top:20px;">Time Window</div>
+        <div class="window-toggle">
+          <button id="btn-1h"  class="win-btn active" onclick="setWindow('1h')">1h</button>
+          <button id="btn-24h" class="win-btn"        onclick="setWindow('24h')">24h</button>
+        </div>
+
+        <!-- ── Load Balancer ────────────────────────────── -->
+        <div class="nav-label" style="margin-top:20px;">Load Balancer</div>
+        <input id="lb-input" class="lb-input" type="text" placeholder="e.g. my-lb"
+               value="" autocomplete="off" />
+
+        <button class="btn-primary" onclick="refresh()" style="margin-top:20px;"
+                id="refresh-btn">
+          ⟳ Refresh
+        </button>
+        <button class="btn-secondary" onclick="exportCSV()" style="margin-top:10px;"
+                id="export-btn">
+          ↓ Export CSV
+        </button>
+
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+
+      <!-- Setup prompt (shown when no API key) -->
+      <div id="setup-prompt" class="setup-prompt hidden">
+        <div class="setup-icon">🔑</div>
+        <div class="setup-title">Enter your API key to get started</div>
+        <div class="setup-body">
+          Paste your F5 Distributed Cloud API token in the <strong>Connection</strong>
+          panel on the left, set the namespace and load balancer name, then click
+          <strong>Refresh</strong>.
+        </div>
+        <div class="setup-hint">
+          Get your key: F5 XC Console → user avatar → Account Settings → Credentials → Add Credentials
+        </div>
+      </div>
+
+      <!-- Dashboard (shown when API key present) -->
+      <div id="dashboard">
+
+        <!-- Stats bar -->
+        <div class="stats-bar">
+          <div class="stat-card">
+            <div class="stat-label">Total Events</div>
+            <div class="stat-value" id="stat-total">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Blocked</div>
+            <div class="stat-value blocked" id="stat-blocked">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Allowed</div>
+            <div class="stat-value allowed" id="stat-allowed">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Top Attack Type</div>
+            <div class="stat-value top-attack" id="stat-top-attack">—</div>
+          </div>
+        </div>
+
+        <!-- Charts row -->
+        <div class="charts-row">
+          <div class="chart-card chart-wide">
+            <div class="chart-title">Events Timeline (5-min buckets)</div>
+            <canvas id="timeline-chart"></canvas>
+          </div>
+          <div class="chart-card chart-narrow">
+            <div class="chart-title">Attack Type Distribution</div>
+            <canvas id="doughnut-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Events table -->
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">Security Events</span>
+            <span id="table-info" class="table-info"></span>
+          </div>
+          <div class="table-wrap">
+            <table id="events-table">
+              <thead>
+                <tr>
+                  <th data-col="time"          onclick="sortBy('time')">Time <span class="sort-icon"></span></th>
+                  <th data-col="src_ip"        onclick="sortBy('src_ip')">Src IP <span class="sort-icon"></span></th>
+                  <th data-col="method"        onclick="sortBy('method')">Method <span class="sort-icon"></span></th>
+                  <th data-col="req_path"      onclick="sortBy('req_path')">Path <span class="sort-icon"></span></th>
+                  <th data-col="response_code" onclick="sortBy('response_code')">Code <span class="sort-icon"></span></th>
+                  <th data-col="waf_action"    onclick="sortBy('waf_action')">Action <span class="sort-icon"></span></th>
+                  <th data-col="attack_type"   onclick="sortBy('attack_type')">Attack Type <span class="sort-icon"></span></th>
+                  <th data-col="severity"      onclick="sortBy('severity')">Severity <span class="sort-icon"></span></th>
+                </tr>
+              </thead>
+              <tbody id="events-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+
+      </div><!-- /#dashboard -->
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
