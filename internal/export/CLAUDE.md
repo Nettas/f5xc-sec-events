@@ -3,25 +3,30 @@
 ## Purpose
 Serialize a []api.SecurityEvent slice to CSV format.
 
+## CSV Columns (14 columns, confirmed against live API fields 2026-04-20)
+    time, src_ip, country, city, vh_name, app_type,
+    threat_level, suspicion_score, waf_sec_event_count, req_count,
+    waf_suspicion_score, summary_msg, namespace, tenant
+
+Note: old columns (method, req_path, response_code, waf_action, attack_type,
+severity, virtual_host, req_id) were removed — they do not exist in the live API response.
+
 ## Requirements
 - Use encoding/csv (stdlib only, no third-party libs)
-- CSV columns (in order):
-    time, src_ip, method, req_path, response_code, waf_action,
-    attack_type, severity, virtual_host, req_id
 - WriteCSV(w io.Writer, events []api.SecurityEvent) error
 - Must flush the csv.Writer before returning
-- Dates in CSV should be human-readable (RFC3339 format)
+- Float fields use fmt.Sprintf("%g", ...) — omits trailing zeros
 
-## Implementation Status: PARTIALLY COMPLETE (csv.go done; CLI mode + tests pending Prompt 4)
+## Implementation Status: COMPLETE
 
 ### csv.go — DONE
 - `WriteCSV(w io.Writer, events []api.SecurityEvent) error`
 - Writes header row then one row per event; calls `cw.Flush()` and returns `cw.Error()`
-- `response_code` converted with `fmt.Sprintf("%d", e.ResponseCode)`
-- Already integrated into `web/handlers.go` exportHandler
+- Numeric fields: `%g` for floats, `%d` for ints
+- Integrated into `web/handlers.go` exportHandler
 
-### csv_test.go — DONE (Prompt 4)
-- `TestWriteCSV_HeaderRow` — asserts all 10 column names in order
+### csv_test.go — DONE
+- `TestWriteCSV_HeaderRow` — asserts all 14 column names in order
 - `TestWriteCSV_RowCount` — header + 3 data rows = 4 total
-- `TestWriteCSV_DataRows` — asserts all 10 field values per row
+- `TestWriteCSV_DataRows` — asserts all 14 field values per row
 - `TestWriteCSV_EmptySlice` — empty input produces header-only output

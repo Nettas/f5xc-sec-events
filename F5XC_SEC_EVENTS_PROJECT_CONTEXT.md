@@ -450,4 +450,40 @@ Namespace Switching (post-UI-settings) — 2026-04-16
   Also asserts api_key is NOT present in response.
 - Total tests: 20. go build + go test + go vet all clean.
 
-Last updated: 2026-04-16. ALL PROMPTS COMPLETE + UI settings + namespace switching.
+---
+Live API Triage & Field Fixes — 2026-04-20
+
+Root cause of zero events was confirmed against live API (namespace: s-iannetta):
+
+1. Query filter field — `virtual_host` does not exist. Correct field: `vh_name`
+   - Format: `{vh_name="%s"}` using %s (not %q — no Go escaping)
+   - Value pattern: `ves-io-{namespace}-{lb-name}` e.g. `ves-io-s-iannetta-webuiaz`
+
+2. Wire format — `events` array contains JSON-encoded strings, not objects.
+   Two-pass unmarshal added to events.go:
+   - Pass 1: Unmarshal response → EventsResponse{RawEvents []string}
+   - Pass 2: Loop, unmarshal each string → SecurityEvent
+
+3. SecurityEvent struct replaced entirely with real API fields (50+ fields).
+   Old fields removed: req_path, method, response_code, waf_action, attack_type,
+   severity, virtual_host, req_id — none exist in live API.
+
+4. Field type quirks confirmed against live data:
+   - latitude, longitude → JSON string (not number) → Go string
+   - start_time, end_time in event payload → Unix epoch int64 (not RFC3339 string)
+   - Request body start_time/end_time remain RFC3339 strings (API requirement)
+
+5. CSV columns updated to 14 real fields:
+   time, src_ip, country, city, vh_name, app_type, threat_level, suspicion_score,
+   waf_sec_event_count, req_count, waf_suspicion_score, summary_msg, namespace, tenant
+
+6. Debug logging added to events.go (temporary):
+   - [DEBUG] request body — printed after marshal, before HTTP call
+   - [DEBUG] response status + body — printed after response read
+
+7. handlers_test.go mock updated to marshalRawEvents() helper — builds mock response
+   in the same double-encoded format as the real API.
+
+All 20 tests pass. go build + go vet clean.
+
+Last updated: 2026-04-20. ALL PROMPTS COMPLETE + UI settings + namespace switching + live API fixes.

@@ -4,8 +4,8 @@ package api
 type SecurityEvent struct {
 	Timestamp                     string  `json:"@timestamp"`
 	Time                          string  `json:"time"`
-	StartTime                     string  `json:"start_time"`
-	EndTime                       string  `json:"end_time"`
+	StartTime                     int64   `json:"start_time"`
+	EndTime                       int64   `json:"end_time"`
 	Namespace                     string  `json:"namespace"`
 	Tenant                        string  `json:"tenant"`
 	SrcIP                         string  `json:"src_ip"`

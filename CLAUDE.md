@@ -24,9 +24,10 @@ and exports them to CSV.
 ## F5 XC API
 - Base URL pattern: https://{tenant}.console.ves.volterra.io/api/data/namespaces/{namespace}/app_security/events
 - Auth header: Authorization: APIToken {api_key}
-- The API uses POST with a JSON body containing start_time, end_time, and optional
-  filter for virtual_host (http-lb name)
-- See docs/api-reference.md for exact request/response shapes
+- POST body: start_time, end_time (RFC3339), optional query filter using `vh_name` field
+- Query filter format: `{vh_name="ves-io-{namespace}-{lb-name}"}` — NOT virtual_host
+- Response `events` array contains JSON-encoded strings (double-encoded) — two-pass unmarshal required
+- See docs/api-reference.md for exact request/response shapes and field type quirks
 
 ## Directory Guide
 - cmd/f5xc-sec/     CLI entry point
@@ -43,8 +44,8 @@ and exports them to CSV.
 
 ## Running the tool
 ```bash
-# CLI mode (prints JSON)
-F5XC_API_KEY=xxx /home/coder/go/bin/go run ./cmd/f5xc-sec --window 1h --namespace s-iannetta --lb my-lb
+# CLI mode (prints JSON) — use full ves-io-{namespace}-{lb-name} for --lb
+F5XC_API_KEY=xxx /home/coder/go/bin/go run ./cmd/f5xc-sec --window 1h --namespace s-iannetta --lb ves-io-s-iannetta-webuiaz
 
 # Web server mode
 F5XC_API_KEY=xxx /home/coder/go/bin/go run ./cmd/f5xc-sec --serve --port 8080
@@ -58,7 +59,9 @@ F5XC_API_KEY=xxx /home/coder/go/bin/go run ./cmd/f5xc-sec --serve --port 8080
 ```
 
 ## Current Status
-- ALL 5 PROMPTS COMPLETE + UI settings + namespace switching — `go build ./...`, `go test ./...` (20 tests), `go vet ./...` all pass
+- ALL 5 PROMPTS COMPLETE + UI settings + namespace switching + live API field fixes
+- `go build ./...`, `go test ./...` (20 tests), `go vet ./...` all pass
 - Web server starts without env key: `./bin/f5xc-sec --serve --port 8080` → paste key in browser
 - GET /api/config seeds namespace field from server config; user can override freely
 - CLI/export still require F5XC_API_KEY env var
+- Live API confirmed 2026-04-20: vh_name filter, double-encoded events, string lat/lon, int64 timestamps
