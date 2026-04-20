@@ -53,8 +53,9 @@ type SecurityEvent struct {
 }
 
 // EventsResponse is the top-level response envelope from the F5 XC events API.
+// The API returns each event as a JSON-encoded string inside the events array.
 type EventsResponse struct {
-	Events []SecurityEvent `json:"events"`
+	RawEvents []string `json:"events"`
 }
 
 // eventsRequest is the POST body sent to the F5 XC events API.

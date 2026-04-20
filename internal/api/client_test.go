@@ -34,7 +34,7 @@ func TestFetchEvents_1hWindow(t *testing.T) {
 			t.Fatalf("decode request body: %v", err)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(EventsResponse{Events: []SecurityEvent{}})
+		json.NewEncoder(w).Encode(EventsResponse{RawEvents: []string{}})
 	}))
 	defer srv.Close()
 
@@ -65,7 +65,7 @@ func TestFetchEvents_24hWindow(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewDecoder(r.Body).Decode(&capturedBody)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(EventsResponse{Events: []SecurityEvent{}})
+		json.NewEncoder(w).Encode(EventsResponse{RawEvents: []string{}})
 	}))
 	defer srv.Close()
 

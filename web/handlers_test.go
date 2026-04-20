@@ -13,45 +13,41 @@ import (
 	"github.com/Nettas/f5xc-sec-events/internal/config"
 )
 
+func marshalRawEvents(events []api.SecurityEvent) string {
+	raw := make([]string, len(events))
+	for i, e := range events {
+		b, _ := json.Marshal(e)
+		raw[i] = string(b)
+	}
+	resp := struct {
+		Events []string `json:"events"`
+	}{Events: raw}
+	b, _ := json.Marshal(resp)
+	return string(b)
+}
+
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
 // mockF5Response is a minimal valid F5 XC API response with two events.
-var mockF5Response = `{
-  "events": [
-    {
-      "time": "2026-04-16T10:00:00Z",
-      "src_ip": "1.2.3.4",
-      "country": "US",
-      "city": "New York",
-      "vh_name": "ves-io-test-ns-my-lb",
-      "app_type": "web",
-      "threat_level": "high",
-      "suspicion_score": 85.5,
-      "waf_sec_event_count": 3,
-      "req_count": 10,
-      "waf_suspicion_score": 75.0,
-      "summary_msg": "SQL injection attempt",
-      "namespace": "test-ns",
-      "tenant": "f5-sa"
-    },
-    {
-      "time": "2026-04-16T10:05:00Z",
-      "src_ip": "5.6.7.8",
-      "country": "GB",
-      "city": "London",
-      "vh_name": "ves-io-test-ns-my-lb",
-      "app_type": "web",
-      "threat_level": "low",
-      "suspicion_score": 10.0,
-      "waf_sec_event_count": 0,
-      "req_count": 5,
-      "waf_suspicion_score": 0,
-      "summary_msg": "",
-      "namespace": "test-ns",
-      "tenant": "f5-sa"
-    }
-  ]
-}`
+// Each event is JSON-encoded as a string, matching the real API wire format.
+var mockF5Response = marshalRawEvents([]api.SecurityEvent{
+	{
+		Time: "2026-04-16T10:00:00Z", SrcIP: "1.2.3.4",
+		Country: "US", City: "New York",
+		VhName: "ves-io-test-ns-my-lb", AppType: "web",
+		ThreatLevel: "high", SuspicionScore: 85.5,
+		WafSecEventCount: 3, ReqCount: 10, WafSuspicionScore: 75.0,
+		SummaryMsg: "SQL injection attempt", Namespace: "test-ns", Tenant: "f5-sa",
+	},
+	{
+		Time: "2026-04-16T10:05:00Z", SrcIP: "5.6.7.8",
+		Country: "GB", City: "London",
+		VhName: "ves-io-test-ns-my-lb", AppType: "web",
+		ThreatLevel: "low", SuspicionScore: 10.0,
+		WafSecEventCount: 0, ReqCount: 5, WafSuspicionScore: 0,
+		SummaryMsg: "", Namespace: "test-ns", Tenant: "f5-sa",
+	},
+})
 
 // newTestServer starts a mock F5 XC backend and returns a wired web.Server and cleanup func.
 func newTestServer(t *testing.T, f5Handler http.HandlerFunc) (*Server, func()) {

@@ -87,5 +87,13 @@ func (c *Client) FetchEvents(ctx context.Context, namespace, lbName, window stri
 		return nil, fmt.Errorf("unmarshal response: %w", err)
 	}
 
-	return eventsResp.Events, nil
+	events := make([]SecurityEvent, 0, len(eventsResp.RawEvents))
+	for i, raw := range eventsResp.RawEvents {
+		var e SecurityEvent
+		if err := json.Unmarshal([]byte(raw), &e); err != nil {
+			return nil, fmt.Errorf("unmarshal event %d: %w", i, err)
+		}
+		events = append(events, e)
+	}
+	return events, nil
 }
