@@ -239,7 +239,7 @@ Prompt 1 — Project Scaffold (`prompts/01-scaffold.md`)
 ```
 Read CLAUDE.md first. Then:
 
-1. Initialize a Go module named `github.com/yourorg/f5xc-sec-events`
+1. Initialize a Go module named `github.com/Nettas/f5xc-sec-events`
 2. Create the full directory tree from CLAUDE.md's Directory Guide
 3. Create a .env.example with: F5XC_API_KEY=, F5XC_TENANT=f5-sa, F5XC_NAMESPACE=s-iannetta
 4. Create .gitignore that ignores: .env, *.env, bin/, vendor/
@@ -365,7 +365,7 @@ Prompt 1 — Scaffold
 - Go is NOT in PATH on this machine. Installed to /home/coder/go/bin/go.
   Always invoke as: /home/coder/go/bin/go build ./...
   (GOPATH=GOROOT warning is harmless — module mode ignores it)
-- Module path: github.com/yourorg/f5xc-sec-events (replace with real org before publishing)
+- Module path: github.com/Nettas/f5xc-sec-events (replace with real org before publishing)
 - internal/config/config.go: Load() returns error if F5XC_API_KEY is empty;
   F5XC_TENANT defaults to "f5-sa", F5XC_NAMESPACE defaults to "s-iannetta"
 
@@ -417,7 +417,7 @@ Open Questions / Next Steps
   particular needs live confirmation (%q quoting may need adjustment).
 - Pagination — F5 XC events API may paginate. Check response for continuation tokens;
   add a pagination loop in events.go if needed.
-- Go module path — replace github.com/yourorg/f5xc-sec-events with actual org/repo.
+- Go module path — replace github.com/Nettas/f5xc-sec-events with actual org/repo.
 ---
 UI Settings Feature (post-Prompt-5) — 2026-04-16
 - Added Connection section to sidebar: API key (password input + show/hide toggle),
