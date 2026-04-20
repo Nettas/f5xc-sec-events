@@ -31,15 +31,15 @@ type SecurityEvent struct {
 	Stream                        string  `json:"stream"`
 	User                          string  `json:"user"`
 	ThreatLevel                   string  `json:"threat_level"`
-	SuspicionScore                float64 `json:"suspicion_score"`
-	WafSuspicionScore             float64 `json:"waf_suspicion_score"`
-	BotDefenseSuspicionScore      float64 `json:"bot_defense_suspicion_score"`
-	BehaviorAnomalyScore          float64 `json:"behavior_anomaly_score"`
-	FeatureScore                  float64 `json:"feature_score"`
-	IpReputationSuspicionScore    float64 `json:"ip_reputation_suspicion_score"`
-	ForbiddenAccessSuspicionScore float64 `json:"forbidden_access_suspicion_score"`
-	FailedLoginSuspicionScore     float64 `json:"failed_login_suspicion_score"`
-	RateLimitSuspicionScore       float64 `json:"rate_limit_suspicion_score"`
+	SuspicionScore                string `json:"suspicion_score"`
+	WafSuspicionScore             string `json:"waf_suspicion_score"`
+	BotDefenseSuspicionScore      string `json:"bot_defense_suspicion_score"`
+	BehaviorAnomalyScore          string `json:"behavior_anomaly_score"`
+	FeatureScore                  string `json:"feature_score"`
+	IpReputationSuspicionScore    string `json:"ip_reputation_suspicion_score"`
+	ForbiddenAccessSuspicionScore string `json:"forbidden_access_suspicion_score"`
+	FailedLoginSuspicionScore     string `json:"failed_login_suspicion_score"`
+	RateLimitSuspicionScore       string `json:"rate_limit_suspicion_score"`
 	WafSecEventCount              int     `json:"waf_sec_event_count"`
 	BotDefenseSecEventCount       int     `json:"bot_defense_sec_event_count"`
 	ReqCount                      int     `json:"req_count"`
