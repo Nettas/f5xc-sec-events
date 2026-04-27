@@ -54,17 +54,17 @@ type SecurityEvent struct {
 	OriginalTopicName             string          `json:"original_topic_name"`
 	// Per-request fields (present on waf_sec_event type)
 	Method            string          `json:"method,omitempty"`
-	RspCode           int             `json:"rsp_code,omitempty"`
+	RspCode           string          `json:"rsp_code,omitempty"`
 	Action            string          `json:"action,omitempty"`
 	Domain            string          `json:"domain,omitempty"`
 	ReqPath           string          `json:"req_path,omitempty"`
 	ReqID             string          `json:"req_id,omitempty"`
 	Authority         string          `json:"authority,omitempty"`
 	ApiEndpoint       string          `json:"api_endpoint,omitempty"`
-	ReqSize           int             `json:"req_size,omitempty"`
-	RspSize           int             `json:"rsp_size,omitempty"`
+	ReqSize           string          `json:"req_size,omitempty"`
+	RspSize           string          `json:"rsp_size,omitempty"`
 	ReqRisk           string          `json:"req_risk,omitempty"`
-	UpstreamRspCode   int             `json:"upstream_rsp_code,omitempty"`
+	UpstreamRspCode   string          `json:"upstream_rsp_code,omitempty"`
 	BrowserType       string          `json:"browser_type,omitempty"`
 	DeviceType        string          `json:"device_type,omitempty"`
 	UserAgent         string          `json:"user_agent,omitempty"`
