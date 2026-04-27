@@ -1,5 +1,7 @@
 package api
 
+import "encoding/json"
+
 // SecurityEvent represents a single WAF/security event from the F5 XC API.
 type SecurityEvent struct {
 	Timestamp                     string  `json:"@timestamp"`
@@ -48,8 +50,11 @@ type SecurityEvent struct {
 	ForbiddenAccessCount          string  `json:"forbidden_access_count"`
 	PageNotFoundCount             string  `json:"page_not_found_count"`
 	RateLimitingCount             string  `json:"rate_limiting_count"`
-	ApiepAnomaly                  string  `json:"apiep_anomaly"`
-	OriginalTopicName             string  `json:"original_topic_name"`
+	ApiepAnomaly                  string          `json:"apiep_anomaly"`
+	OriginalTopicName             string          `json:"original_topic_name"`
+	PolicyHits                    json.RawMessage `json:"policy_hits,omitempty"`
+	TimeseriesEnabled             bool            `json:"timeseries_enabled,omitempty"`
+	Extra                         map[string]json.RawMessage `json:"-"`
 }
 
 // EventsResponse is the top-level response envelope from the F5 XC events API.
