@@ -577,19 +577,45 @@ Session 3 — 2026-04-27: Dashboard Polish, Field Type Lock-in, Expanded Event D
    - parseJsonField() handles both raw JS objects and double-encoded JSON strings
    - expandedIdx state collapses on sort, page change, or new fetch
 
-5. 22 new fields added to SecurityEvent in models.go:
-   Per-request (waf_sec_event type, unconfirmed types — change if 502s appear):
-     Method string, RspCode int, Action string, Domain string, ReqPath string,
-     ReqID string, Authority string, ApiEndpoint string, ReqSize int, RspSize int,
-     ReqRisk string, UpstreamRspCode int
-   Source detail:
-     BrowserType string, DeviceType string, UserAgent string, TLSFingerprint string,
-     JA4TLSFingerprint string, SrcSite string, Src string, ReqParams string
-   Structured (variable-shape):
-     Signatures json.RawMessage, ReqRiskReasons json.RawMessage
-   All new fields use omitempty — absent on malicious_user_sec_event type events.
+5. 22 new fields added to SecurityEvent in models.go (all with omitempty):
+   String fields: Method, Action, Domain, ReqPath, ReqID, Authority, ApiEndpoint,
+                  ReqRisk, BrowserType, DeviceType, UserAgent, TLSFingerprint,
+                  JA4TLSFingerprint, SrcSite, Src, ReqParams
+   String (safe default for unconfirmed numeric): RspCode, ReqSize, RspSize, UpstreamRspCode
+   json.RawMessage: Signatures, ReqRiskReasons
+   All absent on aggregated event types; omitempty ensures they never reach the decoder.
 
 6. Total tests: 20 passing. go build + go vet clean.
 
 ---
-Last updated: 2026-04-27. ALL PROMPTS COMPLETE + live API confirmed + detail panel UI complete.
+Session 3 follow-up — 2026-04-27: Windows 502 Fix & Final Field Type Corrections
+
+Root cause of Windows 502 after session 3 changes:
+  RspCode, ReqSize, RspSize, UpstreamRspCode were typed as `int` in models.go.
+  On Linux (namespace s-iannetta, lb ves-io-http-loadbalancer-webuiaz) these fields
+  are ABSENT from all 58 events in the 1h window, so no unmarshal error occurs.
+  On Windows, the user was likely querying a different endpoint or window that returns
+  individual per-request waf_sec_event hits where those fields ARE present and the
+  F5 XC API sends them as JSON strings — causing "cannot unmarshal string into int".
+
+Fix: changed all four fields from int → string. No test changes needed (fields not in
+any mock struct or CSV column).
+
+vh_name pattern clarification (confirmed from live working curl):
+  Correct: ves-io-http-loadbalancer-{lbname}
+  Wrong (old docs): ves-io-{namespace}-{lbname}
+
+json.RawMessage null/omitempty behaviour confirmed:
+  nil RawMessage + omitempty → field omitted from JSON output (JS sees undefined → handled)
+  RawMessage("null") + omitempty → "field": null in output (JS sees null → handled)
+  JS parseJsonField() handles: undefined, null, [], real array, JSON-encoded string, bad string
+
+Windows build guidance added:
+  Static files are embedded at compile time via //go:embed.
+  Must run `go build ./cmd/f5xc-sec` after any change, then run the binary.
+  `go run` may serve stale embedded files on Windows due to binary caching.
+
+All 20 tests passing. go build + go vet clean.
+
+---
+Last updated: 2026-04-27. ALL PROMPTS COMPLETE + live API confirmed + detail panel UI + Windows 502 fixed.

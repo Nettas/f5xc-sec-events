@@ -9,7 +9,9 @@ Serialize a []api.SecurityEvent slice to CSV format.
     waf_suspicion_score, summary_msg, namespace, tenant
 
 Note: old columns (method, req_path, response_code, waf_action, attack_type,
-severity, virtual_host, req_id) were removed — they do not exist in the live API response.
+severity, virtual_host, req_id) were removed — they do not exist in aggregated live API events.
+The new per-request fields (rsp_code, req_path, etc.) exist only on individual waf_sec_event hits
+and are NOT included in the CSV export — CSV covers the 14 confirmed aggregate columns only.
 
 ## Requirements
 - Use encoding/csv (stdlib only, no third-party libs)
@@ -26,6 +28,7 @@ severity, virtual_host, req_id) were removed — they do not exist in the live A
 - Score fields: `fmt.Sprintf("%g", e.SuspicionScore)` / `fmt.Sprintf("%g", e.WafSuspicionScore)`
 - Count fields: `fmt.Sprintf("%d", e.WafSecEventCount)` / `fmt.Sprintf("%d", e.ReqCount)`
 - Integrated into `web/handlers.go` exportHandler
+- The 22 new per-request fields added to SecurityEvent do NOT affect csv.go (not in CSV columns)
 
 ### csv_test.go — DONE
 - `TestWriteCSV_HeaderRow` — asserts all 14 column names in order

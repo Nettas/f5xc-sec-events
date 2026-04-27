@@ -15,60 +15,68 @@ Embedded Go HTTP server that:
     Content-Type: text/csv
     Content-Disposition: attachment; filename="sec_events_<timestamp>.csv"
 
-## UI Design Goals (web/static/)
-- Dark theme dashboard — F5 red (#E4003A) as accent, dark charcoal backgrounds
-- Top stats bar: Total Events | Blocked | Allowed | Top Attack Type
-- Chart 1: Timeline bar chart of events by 5-min bucket (Chart.js)
-- Chart 2: Doughnut chart of attack type distribution
-- Table: Paginated sortable event table (src_ip, path, method, action, attack_type, time)
-- Controls: window toggle (1h / 24h), LB name input, Refresh button, Export CSV button
-- Use Chart.js from CDN (cdnjs.cloudflare.com)
-- No frameworks. Vanilla JS fetch() to /api/events
+## UI Design (current — updated 2026-04-27)
+- Dark theme — F5 red (#E4003A) accent, dark charcoal backgrounds
+- Top stats bar: Total Events | Blocked | Allowed | Top Event Type
+- Chart 1: Timeline bar chart — 5-min buckets (Chart.js 4.4.1, no SRI hash)
+- Chart 2: Doughnut — distribution by `sec_event_type` (not attack_type)
+- Table: 10 columns, paginated, sortable, click-to-expand detail panel
+- Controls: window toggle (1h/24h), LB input, Refresh, Export CSV
 
-## Implementation Status: COMPLETE (Prompt 3)
+## Implementation Status: COMPLETE
 
 ### server.go
 - `//go:embed static` on package-level `var staticFiles embed.FS`
 - `fs.Sub(staticFiles, "static")` strips prefix so `/app.js` → `static/app.js`
-- Routes: `/api/events`, `/api/export`, `/` (static FileServer)
+- Routes: `/api/events`, `/api/export`, `/api/config`, `/` (static FileServer)
 - `Start(port)` prints "Dashboard ready → http://localhost:<port>" to stderr then blocks
+- **Build note**: static files are embedded at compile time. Must `go build` after any static file change — `go run` may serve stale embeds on some platforms.
 
 ### handlers.go
 - `queryParams(r)` helper: returns window (default "1h") and lb from query string
+- `clientForRequest()`: resolves API key per-request (X-Api-Key header → env var → 401)
 - `eventsHandler`: nil events slice coerced to `[]api.SecurityEvent{}` before JSON encode
-- `exportHandler`: sets `Content-Type: text/csv` and `Content-Disposition: attachment; filename="sec_events_<UTC timestamp>.csv"` before calling `export.WriteCSV`
+- `exportHandler`: sets `Content-Type: text/csv` and `Content-Disposition: attachment; filename="sec_events_<UTC timestamp>.csv"`
 - Both handlers return HTTP 405 on non-GET; HTTP 502 on FetchEvents error
 
 ### static/index.html
-- Loads Chart.js 4.4.1 from cdnjs — NO integrity/crossorigin attributes (hash was invalid and blocked load)
-  `<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>`
-- Layout: sidebar (controls) + main (stats → charts → table)
-- IDs used by app.js: `loading`, `error-banner`, `error-text`, `btn-1h`, `btn-24h`,
-  `lb-input`, `stat-total`, `stat-blocked`, `stat-allowed`, `stat-top-attack`,
+- Chart.js 4.4.1 from cdnjs — NO integrity/crossorigin/referrerpolicy (hash was invalid, blocked both charts)
+- Table thead: Time | Country | City | Src IP | Method | Rsp Code | Event Type | Action | Domain | Path
+- data-col attributes match SecurityEvent JSON field names for sort
+- IDs: `loading`, `error-banner`, `error-text`, `btn-1h`, `btn-24h`, `lb-input`,
+  `stat-total`, `stat-blocked`, `stat-allowed`, `stat-top-attack`,
   `timeline-chart`, `doughnut-chart`, `events-table`, `events-tbody`, `table-info`, `pagination`
 
 ### static/app.js
-- Module-level state: `allEvents`, `filtered`, `currentPage`, `PAGE_SIZE=15`, `sortCol='time'`, `sortDir='desc'`, `currentWindow='1h'`
-- `timelineChart` and `doughnutChart` created once in `initCharts()`, updated in-place — never recreated
-- Timeline buckets: 5-min intervals keyed by Unix-ms, sorted numerically
-- `sortBy(col)` toggles asc/desc on re-click; `applySort()` mutates `filtered`
-- `escHtml()` used on all event field data before innerHTML injection (XSS safe)
-- Loading spinner via `.hidden` CSS class toggle; error banner auto-dismissed with `dismissError()`
+- State: `allEvents`, `filtered`, `currentPage`, `PAGE_SIZE=15`, `sortCol='time'`,
+  `sortDir='desc'`, `currentWindow='1h'`, `expandedIdx=null`
+- Charts created once in `initCharts()`, updated in-place — never recreated
+- Doughnut buckets by `e.sec_event_type`; stats blocked/allowed use `e.action`
+- `renderTable()`: 10-column rows with `▶`/`▼` expand indicator in Time cell
+- `toggleRow(idx)`: sets `expandedIdx`; re-render inserts detail `<tr>` after selected row
+- `buildDetailPanel(e)`: 4-section 2-column grid — Src | Request | Detection | Signatures
+  - Signatures section spans full width; each signature rendered as `.sig-card`
+  - `parseJsonField(val)`: handles `undefined`, `null`, raw JS array, and double-encoded JSON strings
+- Sort/page change/new fetch resets `expandedIdx` to null
+- `escHtml()` on all data rendered into innerHTML (XSS safe)
 
 ### static/style.css
-- CSS variables on `:root` for all colours — change `--accent` to re-theme
-- `.row-block` = left red border; `.row-allow` = left green border
-- `.badge-block/.badge-allow/.badge-other` for WAF action chips
-- `.sev-critical/.sev-high/.sev-medium/.sev-low` for severity colouring
-- `.key-row` flex container for password input + show/hide button
-- `.key-status.key-ok/.key-missing` — green/grey API key status indicator
-- `.setup-prompt` — centered onboarding screen shown when no API key is set
+- CSS variables on `:root` — change `--accent` to re-theme
+- `.data-row` — cursor pointer; `.row-expanded` — highlighted background
+- `.row-block` / `.row-allow` — red/green left border on action rows
+- `.badge-block/.badge-allow/.badge-other` — WAF action chips
+- `.detail-panel` — 2-col CSS grid inside expanded `<tr>`
+- `.detail-section` — individual card (Source/Request/Detection/Signatures)
+- `.detail-section.detail-signatures` — spans both columns (grid-column: 1/-1)
+- `.detail-grid` — label/value pair grid (max-content + 1fr)
+- `.sig-card` — individual signature card within Signatures section
+- `.key-row`, `.key-status.key-ok/.key-missing`, `.setup-prompt` — connection UI
 
-## UI Settings Panel (post-Prompt-5)
-- Sidebar "Connection" section: API Key (password field + eye toggle), Namespace input
-- API key stored in sessionStorage (SS_KEY), namespace in SS_NAMESPACE, lb in SS_LB
-- On load: restoreSettings() reads sessionStorage; if key present, auto-fetches; else shows setup prompt
-- buildHeaders(apiKey, namespace) returns {X-Api-Key, X-Namespace} sent with every fetch
-- exportCSV() uses fetch() + blob download so key goes in header, not URL
-- 401 response: parsed as JSON {error: "..."} and shown in error banner
-- showSetupPrompt(bool) toggles #setup-prompt / #dashboard visibility
+## UI Settings Panel
+- Sidebar "Connection": API Key (password + eye toggle), Namespace input
+- Key in sessionStorage (SS_KEY), namespace in SS_NAMESPACE, lb in SS_LB
+- On load: `loadServerConfig()` seeds namespace; `restoreSettings()` applies session values (session wins)
+- `buildHeaders(apiKey, namespace)` → `{X-Api-Key, X-Namespace}` on every fetch
+- `exportCSV()` uses fetch + blob download — key in header, never in URL
+- 401 → JSON `{error: "..."}` shown in error banner
+- `showSetupPrompt(bool)` toggles `#setup-prompt` / `#dashboard`

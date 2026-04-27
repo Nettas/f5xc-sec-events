@@ -25,7 +25,8 @@ and exports them to CSV.
 - Base URL pattern: https://{tenant}.console.ves.volterra.io/api/data/namespaces/{namespace}/app_security/events
 - Auth header: Authorization: APIToken {api_key}
 - POST body: start_time, end_time (RFC3339), optional query filter using `vh_name` field
-- Query filter format: `{vh_name="ves-io-{namespace}-{lb-name}"}` — NOT virtual_host
+- Query filter format: `{vh_name="ves-io-http-loadbalancer-{lb-name}"}` — NOT virtual_host
+- vh_name pattern confirmed 2026-04-27: `ves-io-http-loadbalancer-{lbname}` (not `ves-io-{namespace}-{lbname}`)
 - Response `events` array contains JSON-encoded strings (double-encoded) — two-pass unmarshal required
 - See docs/api-reference.md for exact request/response shapes and field type quirks
 
@@ -59,18 +60,22 @@ F5XC_API_KEY=xxx /home/coder/go/bin/go run ./cmd/f5xc-sec --serve --port 8080
 ```
 
 ## Current Status
-- ALL 5 PROMPTS COMPLETE + UI settings + namespace switching + live API field fixes
+- ALL 5 PROMPTS COMPLETE + UI settings + namespace switching + live API field fixes + detail panel UI
 - `go build ./...`, `go test ./...` (20 tests), `go vet ./...` all pass
-- Live curl test confirmed 2026-04-27: endpoint returns full event array, zero unmarshal errors
+- Live curl confirmed 2026-04-27: 58 events (malicious_user_sec_event + waf_sec_event), zero errors
 - Web server starts without env key: `./bin/f5xc-sec --serve --port 8080` → paste key in browser
-- GET /api/config seeds namespace field from server config; user can override freely
+- Events table: 10 columns with click-to-expand detail panel (Src/Request/Detection/Signatures)
+- GET /api/config seeds namespace from server config; user can override in browser
 - CLI/export still require F5XC_API_KEY env var
+- Windows build: always use `go build` then run the binary — `go run` may serve stale embedded files
 
 ## Confirmed Field Types (live API 2026-04-27 — do not change without re-testing)
-- `latitude`, `longitude` → `string` (API sends as quoted string)
-- `start_time`, `end_time` (event payload) → `int64` (Unix epoch integers)
-- Score fields (suspicion_score, waf_suspicion_score, etc.) → `float64` (JSON floats)
+- `latitude`, `longitude` → `string` (quoted string despite looking numeric)
+- `start_time`, `end_time` (event payload) → `int64` (Unix epoch seconds)
+- Score fields (suspicion_score, waf_suspicion_score, etc., 8 fields) → `float64`
 - `feature_score` → `string` exception (API sends as JSON-encoded string `"{}"`)
-- Count fields (req_count, waf_sec_event_count, etc.) → `int` (JSON integers)
-- `apiep_anomaly` → `int` (JSON integer)
-- Chart.js SRI integrity hash removed from index.html (was invalid, blocked script load)
+- Count fields (req_count, waf_sec_event_count, etc., 8 fields) → `int`
+- `apiep_anomaly` → `int`
+- Per-request fields (rsp_code, req_size, rsp_size, upstream_rsp_code) → `string` (unconfirmed int; string is safe default for this API)
+- `signatures`, `req_risk_reasons` → `json.RawMessage` (arrays in live API; may be double-encoded strings)
+- Chart.js loaded without SRI hash (hash was invalid, blocked both charts)
