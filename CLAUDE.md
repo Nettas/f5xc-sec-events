@@ -18,8 +18,8 @@ and exports them to CSV.
 - All HTTP calls must have configurable timeouts (default 30s).
 - Errors must be wrapped with context using fmt.Errorf("...: %w", err)
 - Log to stderr; structured output (JSON events) to stdout or HTTP response
-- Time windows: "1h" = last 1 hour, "24h" = last 24 hours — passed as a CLI
-  flag `--window 1h|24h` and as a query param `?window=1h` in the web API
+- Time window: integer hours 1–24 — passed as CLI flag `--window <int>` (default 1)
+  and as query param `?window=<int>` in the web API (default 1, clamped 1–24)
 
 ## F5 XC API
 - Base URL pattern: https://{tenant}.console.ves.volterra.io/api/data/namespaces/{namespace}/app_security/events
@@ -45,8 +45,8 @@ and exports them to CSV.
 
 ## Running the tool
 ```bash
-# CLI mode (prints JSON) — use full ves-io-{namespace}-{lb-name} for --lb
-F5XC_API_KEY=xxx /home/coder/go/bin/go run ./cmd/f5xc-sec --window 1h --namespace s-iannetta --lb ves-io-s-iannetta-webuiaz
+# CLI mode (prints JSON) — --window is hours 1–24; use full ves-io-http-loadbalancer-{lb-name} for --lb
+F5XC_API_KEY=xxx /home/coder/go/bin/go run ./cmd/f5xc-sec --window 4 --namespace s-iannetta --lb ves-io-http-loadbalancer-webuiaz
 
 # Web server mode
 F5XC_API_KEY=xxx /home/coder/go/bin/go run ./cmd/f5xc-sec --serve --port 8080
@@ -60,11 +60,12 @@ F5XC_API_KEY=xxx /home/coder/go/bin/go run ./cmd/f5xc-sec --serve --port 8080
 ```
 
 ## Current Status
-- ALL 5 PROMPTS COMPLETE + UI settings + namespace switching + live API field fixes + detail panel UI
+- ALL 5 PROMPTS COMPLETE + UI settings + namespace switching + live API field fixes + detail panel UI + 1–24h slider
 - `go build ./...`, `go test ./...` (20 tests), `go vet ./...` all pass
 - Live curl confirmed 2026-04-27: 58 events (malicious_user_sec_event + waf_sec_event), zero errors
 - Web server starts without env key: `./bin/f5xc-sec --serve --port 8080` → paste key in browser
 - Events table: 10 columns with click-to-expand detail panel (Src/Request/Detection/Signatures)
+- Time window: range slider 1–24 hours (replaces 1h/24h toggle buttons); label shows "Last N hour(s)"
 - GET /api/config seeds namespace from server config; user can override in browser
 - CLI/export still require F5XC_API_KEY env var
 - Windows build: always use `go build` then run the binary — `go run` may serve stale embedded files

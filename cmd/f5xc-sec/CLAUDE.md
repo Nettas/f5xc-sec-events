@@ -7,7 +7,7 @@ CLI entry point for the F5 XC Security Events tool.
 - main.go — parses CLI flags, loads config, dispatches to CLI or web server mode
 
 ## CLI Flags
-- `--window`    string  Time window: "1h" or "24h" (default "1h")
+- `--window`    int     Time window in hours, 1–24 (default 1)
 - `--namespace` string  F5 XC namespace (overrides F5XC_NAMESPACE env var)
 - `--lb`        string  HTTP Load Balancer name to filter events
 - `--serve`     bool    Start web server mode instead of printing JSON

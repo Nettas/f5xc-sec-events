@@ -5,7 +5,7 @@ Project Summary
 Building a Go CLI + embedded web dashboard that:
 Authenticates to F5 Distributed Cloud (tenant: `f5-sa`) using an API key
 Pulls WAF/security events from a specific namespace and HTTP Load Balancer
-Supports two time windows: last 1 hour or last 24 hours
+Supports a configurable time window: 1–24 hours (slider in UI, `--window` int flag in CLI)
 Visualizes events in a browser-based dashboard (dark theme, Chart.js)
 Exports events to CSV for Excel use
 ---
@@ -17,7 +17,7 @@ Repo pattern	Custom purpose-built repo	agency-agents and claude-cookbooks don't 
 CLAUDE.md strategy	Root + per-package	Claude Code reads these automatically; keeps context scoped
 UI	Vanilla JS + Chart.js embedded in Go binary	No build step; single binary deployment
 Auth	`APIToken` header via environment variable	Matches F5 XC API spec; no hardcoded secrets
-Time windows	`--window 1h|24h` CLI flag + `?window=` query param	Consistent across CLI and web modes
+Time window	`--window <int>` CLI flag (1–24, default 1) + `?window=<int>` query param	Consistent across CLI and web modes; slider in UI
 CSV export	Both CLI (`--export` flag) and web (`/api/export` endpoint)	Flexibility for automation and browser use
 Rejected repos	`agency-agents` (marketing/persona prompts) and `claude-cookbooks` (Jupyter/Anthropic API)	Neither supports Go CLI tooling patterns
 ---
@@ -130,8 +130,8 @@ and exports them to CSV.
 - All HTTP calls must have configurable timeouts (default 30s).
 - Errors must be wrapped with context using fmt.Errorf("...: %w", err)
 - Log to stderr; structured output (JSON events) to stdout or HTTP response
-- Time windows: "1h" = last 1 hour, "24h" = last 24 hours — passed as a CLI
-  flag `--window 1h|24h` and as a query param `?window=1h` in the web API
+- Time window: integer hours 1–24 — passed as CLI flag `--window <int>` (default 1)
+  and as query param `?window=<int>` in the web API (default 1, clamped 1–24)
 
 ## F5 XC API
 - Base URL pattern: https://{tenant}.console.ves.volterra.io/api/data/namespaces/{namespace}/app_security/events
@@ -151,7 +151,7 @@ and exports them to CSV.
 ## Running the tool
 \`\`\`bash
 # CLI mode (prints JSON)
-F5XC_API_KEY=xxx go run ./cmd/f5xc-sec --window 1h --namespace s-iannetta --lb my-lb
+F5XC_API_KEY=xxx go run ./cmd/f5xc-sec --window 4 --namespace s-iannetta --lb ves-io-http-loadbalancer-my-lb
 
 # Web server mode
 F5XC_API_KEY=xxx go run ./cmd/f5xc-sec --serve --port 8080
@@ -167,7 +167,7 @@ HTTP client for the F5 Distributed Cloud app_security events endpoint.
 ## Key Files
 - client.go   — creates an *http.Client with timeout; attaches APIToken auth header
 - models.go   — Go structs that map to the F5 XC JSON response (use json tags)
-- events.go   — FetchEvents(ctx, window, namespace, lbName) → []SecurityEvent, error
+- events.go   — FetchEvents(ctx, namespace, lbName string, hours int) → []SecurityEvent, error
 
 ## F5 XC Events API Details
 Endpoint: POST https://{tenant}.console.ves.volterra.io/api/data/namespaces/{namespace}/app_security/events
@@ -194,8 +194,8 @@ Auth: Header → Authorization: APIToken <F5XC_API_KEY>
 ## Purpose
 Embedded Go HTTP server that:
 1. Serves the single-page dashboard (web/static/)
-2. Exposes a JSON API: GET /api/events?window=1h&lb=my-lb
-3. Exposes a CSV download: GET /api/export?window=1h&lb=my-lb
+2. Exposes a JSON API: GET /api/events?window=4&lb=my-lb  (window = integer hours 1–24)
+3. Exposes a CSV download: GET /api/export?window=4&lb=my-lb
 
 ## Implementation Notes
 - Use Go 1.16+ embed directive to embed static/ into the binary
@@ -212,7 +212,7 @@ Embedded Go HTTP server that:
 - Chart 1: Timeline bar chart of events by 5-min bucket (Chart.js)
 - Chart 2: Doughnut chart of attack type distribution
 - Table: Paginated sortable event table (src_ip, path, method, action, attack_type, time)
-- Controls: window toggle (1h / 24h), LB name input, Refresh button, Export CSV button
+- Controls: window slider (1–24 hours, label shows "Last N hour(s)"), LB name input, Refresh button, Export CSV button
 - Use Chart.js from CDN (cdnjs.cloudflare.com)
 - No frameworks. Vanilla JS fetch() to /api/events
 ```
@@ -618,4 +618,45 @@ Windows build guidance added:
 All 20 tests passing. go build + go vet clean.
 
 ---
-Last updated: 2026-04-27. ALL PROMPTS COMPLETE + live API confirmed + detail panel UI + Windows 502 fixed.
+Time Window Slider — 2026-04-27 (session 4)
+
+Replaced the 1h/24h toggle buttons with a 1–24 hour range slider throughout the stack.
+
+1. internal/api/events.go
+   - FetchEvents signature changed: `window string` → `hours int`
+   - Validates 1 ≤ hours ≤ 24; returns error otherwise
+   - startTime = now - time.Duration(hours)*time.Hour
+
+2. web/handlers.go
+   - queryParams() now returns (hours int, lb string)
+   - Parses ?window= as integer via strconv.Atoi; defaults to 1; clamps to 1–24
+   - Added "strconv" import
+
+3. cmd/f5xc-sec/main.go
+   - --window flag type changed from string (default "1h") to int (default 1)
+   - Passes *window (int) directly to FetchEvents
+
+4. web/static/index.html
+   - Removed #btn-1h and #btn-24h toggle buttons
+   - Added <input id="window-slider" type="range" min="1" max="24" value="1">
+   - Added <span id="window-label">Last 1 hour</span>
+
+5. web/static/app.js
+   - currentWindow initialised to 1 (int, not string)
+   - setWindow(w) replaced by onWindowSlider(val): parses int, updates label text
+     ("Last 1 hour" / "Last N hours"), triggers refresh when API key present
+   - ?window= query param now sends the integer value (e.g. ?window=4)
+
+6. web/static/style.css
+   - Removed .window-toggle, .win-btn, .win-btn.active styles
+   - Added .window-slider-row (flex column), .window-slider (accent-color red),
+     .window-label (red, bold, centered)
+
+7. Tests updated
+   - client_test.go: all FetchEvents calls pass int (1 or 24); TestFetchEvents_InvalidWindow
+     now tests hours=0 and hours=25 instead of the old "7d" string
+   - handlers_test.go: all ?window=1h query params changed to ?window=1
+   - All 20 tests pass. go build + go vet clean.
+
+---
+Last updated: 2026-04-27. ALL PROMPTS COMPLETE + live API confirmed + detail panel UI + Windows 502 fixed + 1–24h slider.

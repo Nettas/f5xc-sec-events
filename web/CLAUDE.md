@@ -3,8 +3,8 @@
 ## Purpose
 Embedded Go HTTP server that:
 1. Serves the single-page dashboard (web/static/)
-2. Exposes a JSON API: GET /api/events?window=1h&lb=my-lb
-3. Exposes a CSV download: GET /api/export?window=1h&lb=my-lb
+2. Exposes a JSON API: GET /api/events?window=4&lb=my-lb  (window = integer hours 1–24, default 1)
+3. Exposes a CSV download: GET /api/export?window=4&lb=my-lb
 
 ## Implementation Notes
 - Use Go 1.16+ embed directive to embed static/ into the binary
@@ -21,7 +21,7 @@ Embedded Go HTTP server that:
 - Chart 1: Timeline bar chart — 5-min buckets (Chart.js 4.4.1, no SRI hash)
 - Chart 2: Doughnut — distribution by `sec_event_type` (not attack_type)
 - Table: 10 columns, paginated, sortable, click-to-expand detail panel
-- Controls: window toggle (1h/24h), LB input, Refresh, Export CSV
+- Controls: window slider (1–24 hours, label shows "Last N hour(s)"), LB input, Refresh, Export CSV
 
 ## Implementation Status: COMPLETE
 
@@ -33,7 +33,7 @@ Embedded Go HTTP server that:
 - **Build note**: static files are embedded at compile time. Must `go build` after any static file change — `go run` may serve stale embeds on some platforms.
 
 ### handlers.go
-- `queryParams(r)` helper: returns window (default "1h") and lb from query string
+- `queryParams(r)` helper: returns hours int (default 1, clamped 1–24) and lb from query string; parses `?window=` as integer
 - `clientForRequest()`: resolves API key per-request (X-Api-Key header → env var → 401)
 - `eventsHandler`: nil events slice coerced to `[]api.SecurityEvent{}` before JSON encode
 - `exportHandler`: sets `Content-Type: text/csv` and `Content-Disposition: attachment; filename="sec_events_<UTC timestamp>.csv"`
@@ -43,13 +43,13 @@ Embedded Go HTTP server that:
 - Chart.js 4.4.1 from cdnjs — NO integrity/crossorigin/referrerpolicy (hash was invalid, blocked both charts)
 - Table thead: Time | Country | City | Src IP | Method | Rsp Code | Event Type | Action | Domain | Path
 - data-col attributes match SecurityEvent JSON field names for sort
-- IDs: `loading`, `error-banner`, `error-text`, `btn-1h`, `btn-24h`, `lb-input`,
+- IDs: `loading`, `error-banner`, `error-text`, `window-slider`, `window-label`, `lb-input`,
   `stat-total`, `stat-blocked`, `stat-allowed`, `stat-top-attack`,
   `timeline-chart`, `doughnut-chart`, `events-table`, `events-tbody`, `table-info`, `pagination`
 
 ### static/app.js
 - State: `allEvents`, `filtered`, `currentPage`, `PAGE_SIZE=15`, `sortCol='time'`,
-  `sortDir='desc'`, `currentWindow='1h'`, `expandedIdx=null`
+  `sortDir='desc'`, `currentWindow=1` (integer hours), `expandedIdx=null`
 - Charts created once in `initCharts()`, updated in-place — never recreated
 - Doughnut buckets by `e.sec_event_type`; stats blocked/allowed use `e.action`
 - `renderTable()`: 10-column rows with `▶`/`▼` expand indicator in Time cell
@@ -70,6 +70,7 @@ Embedded Go HTTP server that:
 - `.detail-section.detail-signatures` — spans both columns (grid-column: 1/-1)
 - `.detail-grid` — label/value pair grid (max-content + 1fr)
 - `.sig-card` — individual signature card within Signatures section
+- `.window-slider-row`, `.window-slider` (accent-color red), `.window-label` — slider UI replacing old toggle buttons
 - `.key-row`, `.key-status.key-ok/.key-missing`, `.setup-prompt` — connection UI
 
 ## UI Settings Panel

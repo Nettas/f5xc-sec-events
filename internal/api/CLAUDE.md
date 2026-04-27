@@ -6,7 +6,7 @@ HTTP client for the F5 Distributed Cloud app_security events endpoint.
 ## Key Files
 - client.go   — creates an *http.Client with timeout; attaches APIToken auth header
 - models.go   — Go structs that map to the F5 XC JSON response (use json tags)
-- events.go   — FetchEvents(ctx, namespace, lbName, window) → []SecurityEvent, error
+- events.go   — FetchEvents(ctx, namespace, lbName string, hours int) → []SecurityEvent, error
 
 ## F5 XC Events API Details
 Endpoint: POST https://{tenant}.console.ves.volterra.io/api/data/namespaces/{namespace}/app_security/events
@@ -68,7 +68,9 @@ All per-request fields use `omitempty` — absent on aggregated event types, so 
   - Extra `map[string]json.RawMessage \`json:"-"\`` is a struct placeholder only — json:"-" means decoder never touches it; unknown API fields are silently discarded by default
 - client.go: Client{tenant, apiKey, httpClient, baseURL}; NewClient(); WithTimeout(); WithAPIKey(); WithBaseURL()
   - baseURL is a test seam — do NOT remove; client_test.go depends on it via newTestClient()
-- events.go: FetchEvents(ctx, namespace, lbName, window) — two-pass unmarshal, debug logging to stderr
+- events.go: FetchEvents(ctx, namespace, lbName string, hours int) — two-pass unmarshal, debug logging to stderr
+  - hours must be 1–24; returns error otherwise
+  - startTime = now - hours*time.Hour
   - lbName="" → no filter; lbName set → query=`{vh_name="%s"}`
   - Plain json.Unmarshal — unknown fields silently ignored
-- client_test.go: 5 tests passing (1h window, 24h window, auth header, non-200, invalid window)
+- client_test.go: 5 tests passing (1h window, 24h window, auth header, non-200, invalid hours 0 and 25)
