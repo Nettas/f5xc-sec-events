@@ -59,12 +59,18 @@ F5XC_API_KEY=xxx /home/coder/go/bin/go run ./cmd/f5xc-sec --serve --port 8080
 ```
 
 ## Current Status
-- ALL 5 PROMPTS COMPLETE + UI settings + namespace switching + live API field fixes + 2026-04-27 hardening
+- ALL 5 PROMPTS COMPLETE + UI settings + namespace switching + live API field fixes
 - `go build ./...`, `go test ./...` (20 tests), `go vet ./...` all pass
+- Live curl test confirmed 2026-04-27: endpoint returns full event array, zero unmarshal errors
 - Web server starts without env key: `./bin/f5xc-sec --serve --port 8080` → paste key in browser
 - GET /api/config seeds namespace field from server config; user can override freely
 - CLI/export still require F5XC_API_KEY env var
-- Live API confirmed 2026-04-20: vh_name filter, double-encoded events, string lat/lon, string score fields
-- 2026-04-27: ALL count fields (req_count, waf_sec_event_count, etc.) changed int→string; start_time/end_time in SecurityEvent changed int64→string; PolicyHits (json.RawMessage), TimeseriesEnabled (bool), Extra (map, json:"-") added to SecurityEvent
-- 2026-04-27: Chart.js SRI integrity hash removed from index.html (was invalid, blocked script load)
-- Unknown/extra API fields are silently ignored by default (json.Unmarshal, no DisallowUnknownFields)
+
+## Confirmed Field Types (live API 2026-04-27 — do not change without re-testing)
+- `latitude`, `longitude` → `string` (API sends as quoted string)
+- `start_time`, `end_time` (event payload) → `int64` (Unix epoch integers)
+- Score fields (suspicion_score, waf_suspicion_score, etc.) → `float64` (JSON floats)
+- `feature_score` → `string` exception (API sends as JSON-encoded string `"{}"`)
+- Count fields (req_count, waf_sec_event_count, etc.) → `int` (JSON integers)
+- `apiep_anomaly` → `int` (JSON integer)
+- Chart.js SRI integrity hash removed from index.html (was invalid, blocked script load)

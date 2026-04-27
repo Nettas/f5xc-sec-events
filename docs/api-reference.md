@@ -52,16 +52,29 @@ summary_msg, suspicion_log_type, suspicion_score, tenant, threat_level,
 time, user, vh_name, waf_sec_event_count, waf_suspicion_score
 ```
 
-### Field Type Quirks (confirmed against live API; updated 2026-04-27)
+### Field Type Map — AUTHORITATIVE (confirmed by live curl 2026-04-27)
+
+> These types are locked. Any change requires a live re-test — mismatches cause 502 unmarshal errors.
 
 | Field(s) | JSON type | Go type | Notes |
 |----------|-----------|---------|-------|
-| `latitude`, `longitude` | string | `string` | Sent as quoted string despite being numeric |
-| `start_time`, `end_time` (event payload) | number | `string` | Changed int64→string 2026-04-27; safer for unmarshal |
-| `start_time`, `end_time` (request body) | string | `string` | RFC3339 — required by API |
-| `suspicion_score`, `waf_suspicion_score`, `bot_defense_suspicion_score`, `behavior_anomaly_score`, `feature_score`, `ip_reputation_suspicion_score`, `forbidden_access_suspicion_score`, `failed_login_suspicion_score`, `rate_limit_suspicion_score` | string | `string` | All score fields sent as quoted strings |
-| `req_count`, `waf_sec_event_count`, `err_count`, `failed_login_count`, `forbidden_access_count`, `page_not_found_count`, `rate_limiting_count`, `bot_defense_sec_event_count` | string | `string` | Changed int→string 2026-04-27; API sends as JSON strings |
-| `policy_hits` | object/array/null | `json.RawMessage` | Variable shape — stored raw to avoid unmarshal errors |
-| `timeseries_enabled` | bool | `bool` | Added 2026-04-27 |
+| `latitude`, `longitude` | string | `string` | Quoted string despite being numeric |
+| `start_time`, `end_time` (event payload) | number | `int64` | Unix epoch seconds |
+| `start_time`, `end_time` (request body) | string | `string` | RFC3339 — required by the API |
+| `suspicion_score`, `waf_suspicion_score`, `bot_defense_suspicion_score`, `behavior_anomaly_score`, `ip_reputation_suspicion_score`, `forbidden_access_suspicion_score`, `failed_login_suspicion_score`, `rate_limit_suspicion_score` | float | `float64` | All score fields are JSON floats |
+| `feature_score` | string | `string` | Exception — API sends `"{}"` (JSON-encoded string) |
+| `req_count`, `waf_sec_event_count`, `err_count`, `failed_login_count`, `forbidden_access_count`, `page_not_found_count`, `rate_limiting_count`, `bot_defense_sec_event_count` | number | `int` | JSON integers |
+| `apiep_anomaly` | number | `int` | JSON integer (0 or 1) |
+| `policy_hits` | object/null | `json.RawMessage` | Variable shape — stored raw |
+| `timeseries_enabled` | bool | `bool` | |
+| `incremental_activity_info` | string | not mapped | JSON-encoded nested object — silently ignored |
+| `method_counts` | string | not mapped | JSON-encoded nested object — silently ignored |
+| `mitigation_activity_info` | string | not mapped | JSON-encoded nested object — silently ignored |
+
+### Fields Not in Struct (silently ignored by json.Unmarshal)
+
+The following fields appear in the live API response but are not mapped in SecurityEvent.
+They are discarded by Go's default JSON decoder (no DisallowUnknownFields is used):
+`incremental_activity_info`, `method_counts`, `mitigation_activity_info`
 
 > **Pagination:** Not yet confirmed. Check response for continuation tokens if large result sets are truncated.

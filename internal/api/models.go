@@ -52,9 +52,33 @@ type SecurityEvent struct {
 	RateLimitingCount             int     `json:"rate_limiting_count"`
 	ApiepAnomaly                  int             `json:"apiep_anomaly"`
 	OriginalTopicName             string          `json:"original_topic_name"`
-	PolicyHits                    json.RawMessage `json:"policy_hits,omitempty"`
-	TimeseriesEnabled             bool            `json:"timeseries_enabled,omitempty"`
-	Extra                         map[string]json.RawMessage `json:"-"`
+	// Per-request fields (present on waf_sec_event type)
+	Method            string          `json:"method,omitempty"`
+	RspCode           int             `json:"rsp_code,omitempty"`
+	Action            string          `json:"action,omitempty"`
+	Domain            string          `json:"domain,omitempty"`
+	ReqPath           string          `json:"req_path,omitempty"`
+	ReqID             string          `json:"req_id,omitempty"`
+	Authority         string          `json:"authority,omitempty"`
+	ApiEndpoint       string          `json:"api_endpoint,omitempty"`
+	ReqSize           int             `json:"req_size,omitempty"`
+	RspSize           int             `json:"rsp_size,omitempty"`
+	ReqRisk           string          `json:"req_risk,omitempty"`
+	UpstreamRspCode   int             `json:"upstream_rsp_code,omitempty"`
+	BrowserType       string          `json:"browser_type,omitempty"`
+	DeviceType        string          `json:"device_type,omitempty"`
+	UserAgent         string          `json:"user_agent,omitempty"`
+	TLSFingerprint    string          `json:"tls_fingerprint,omitempty"`
+	JA4TLSFingerprint string          `json:"ja4_tls_fingerprint,omitempty"`
+	SrcSite           string          `json:"src_site,omitempty"`
+	Src               string          `json:"src,omitempty"`
+	ReqParams         string          `json:"req_params,omitempty"`
+	Signatures        json.RawMessage `json:"signatures,omitempty"`
+	ReqRiskReasons    json.RawMessage `json:"req_risk_reasons,omitempty"`
+	// Complex / variable-shape fields
+	PolicyHits        json.RawMessage `json:"policy_hits,omitempty"`
+	TimeseriesEnabled bool            `json:"timeseries_enabled,omitempty"`
+	Extra             map[string]json.RawMessage `json:"-"`
 }
 
 // EventsResponse is the top-level response envelope from the F5 XC events API.

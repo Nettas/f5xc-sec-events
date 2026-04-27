@@ -503,21 +503,7 @@ All 20 tests pass. go build + go vet clean.
 All 20 tests pass. go build + go vet clean.
 
 ---
-Count Field & Timestamp Type Fix — 2026-04-27
-
-Resolved outstanding risk: all eight count fields changed from Go `int` to `string`:
-  req_count, waf_sec_event_count, bot_defense_sec_event_count, err_count,
-  failed_login_count, forbidden_access_count, page_not_found_count, rate_limiting_count
-
-Also changed SecurityEvent.StartTime and EndTime from `int64` to `string` — API sends
-them as integers but string is safer and avoids future unmarshal failures.
-
-csv.go: removed fmt.Sprintf("%d", ...) for count fields — written directly as strings.
-csv_test.go + handlers_test.go: int literals in mock structs updated to quoted strings.
-All 20 tests pass. go build + go vet clean.
-
----
-SecurityEvent Struct Hardening — 2026-04-27
+SecurityEvent Struct Hardening — 2026-04-27 (session 1)
 
 Added three fields to SecurityEvent in models.go:
   PolicyHits         json.RawMessage            `json:"policy_hits,omitempty"`
@@ -525,22 +511,85 @@ Added three fields to SecurityEvent in models.go:
   Extra              map[string]json.RawMessage `json:"-"`
 
 models.go now imports "encoding/json" for json.RawMessage.
-
-Note on Extra: json:"-" means the JSON decoder never populates it — it is a struct
-placeholder only. Go's json.Unmarshal silently discards unknown fields by default;
-no DisallowUnknownFields is used anywhere in events.go, so unknown API fields are safe.
-
+Extra with json:"-" is a struct placeholder only; json.Unmarshal silently ignores
+unknown fields by default — no DisallowUnknownFields anywhere.
 All 20 tests pass. go build + go vet clean.
 
 ---
-Chart.js SRI Hash Removed — 2026-04-27
+Chart.js SRI Hash Removed — 2026-04-27 (session 1)
 
-web/static/index.html: removed integrity, crossorigin, and referrerpolicy attributes
-from the Chart.js 4.4.1 script tag. The bundled hash was invalid and caused the browser
-to block the script entirely, breaking both charts in the dashboard.
-
-Script tag is now:
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+web/static/index.html: removed integrity, crossorigin, referrerpolicy from Chart.js tag.
+The hash was invalid and caused the browser to block the script, breaking both charts.
+Script tag is now a plain src-only tag (no SRI).
 
 ---
-Last updated: 2026-04-27. ALL PROMPTS COMPLETE + UI settings + namespace switching + live API fixes + type hardening.
+Live API Curl Test & Final Field Type Fixes — 2026-04-27 (session 2)
+
+Ran live curl against /api/events endpoint. Iterated through unmarshal errors to arrive
+at the definitive Go type for every field. Final authoritative type map:
+
+  latitude, longitude          → string   (quoted string from API)
+  start_time, end_time         → int64    (Unix epoch integers in event payload)
+  score fields (8 fields)      → float64  (JSON floats, e.g. 0.646816683574033)
+  feature_score                → string   (exception: API sends as JSON-encoded string "{}")
+  count fields (8 fields)      → int      (JSON integers)
+  apiep_anomaly                → int      (JSON integer, 0 or 1)
+
+NOTE: An intermediate session changed count fields to `string` and start/end_time to
+`string`, which proved incorrect against the live API. Those changes were fully reverted.
+
+Unmapped fields (silently ignored by json.Unmarshal):
+  incremental_activity_info, method_counts, mitigation_activity_info
+  (all are JSON-encoded nested strings — not needed in the struct)
+
+csv.go updated:
+  - Score fields: fmt.Sprintf("%g", e.SuspicionScore) / fmt.Sprintf("%g", e.WafSuspicionScore)
+  - Count fields: fmt.Sprintf("%d", e.WafSecEventCount) / fmt.Sprintf("%d", e.ReqCount)
+
+csv_test.go + handlers_test.go: mock literals updated to float64/int.
+All 20 tests pass. go build + go vet clean.
+Live curl returns full event array with zero errors.
+
+---
+Session 3 — 2026-04-27: Dashboard Polish, Field Type Lock-in, Expanded Event Detail
+
+1. All SecurityEvent field types confirmed against live API and corrected.
+   Web dashboard serving events with zero unmarshal errors.
+   CSV export working end-to-end.
+
+2. Chart.js SRI integrity hash removed from index.html (was invalid, blocked both charts).
+
+3. Events table redesigned — 10 columns replacing the old 8:
+     Time | Country | City | Src IP | Method | Rsp Code | Event Type | Action | Domain | Path
+   - Domain column shows e.authority falling back to e.vh_name
+   - Event Type shows e.sec_event_type (replaces old attack_type/severity columns)
+   - Action uses e.action (replaces old e.waf_action)
+   - doughnut chart now buckets by sec_event_type; stats blocked/allowed use e.action
+
+4. Expandable row detail panel added (click any row to expand/collapse):
+   - Src section:       src_ip, city, region, country, asn, browser_type, device_type,
+                        user_agent, src_site, src, tls_fingerprint, ja4_tls_fingerprint
+   - Request section:   req_id, authority, req_path, method, api_endpoint,
+                        req_size, rsp_size, rsp_code
+   - Detection section: sec_event_type, action, req_risk, req_risk_reasons[0]
+   - Signatures section: loops over signatures array; each card shows id, name,
+                         attack_types, accuracy, context, matching_info, state, risk
+   - parseJsonField() handles both raw JS objects and double-encoded JSON strings
+   - expandedIdx state collapses on sort, page change, or new fetch
+
+5. 22 new fields added to SecurityEvent in models.go:
+   Per-request (waf_sec_event type, unconfirmed types — change if 502s appear):
+     Method string, RspCode int, Action string, Domain string, ReqPath string,
+     ReqID string, Authority string, ApiEndpoint string, ReqSize int, RspSize int,
+     ReqRisk string, UpstreamRspCode int
+   Source detail:
+     BrowserType string, DeviceType string, UserAgent string, TLSFingerprint string,
+     JA4TLSFingerprint string, SrcSite string, Src string, ReqParams string
+   Structured (variable-shape):
+     Signatures json.RawMessage, ReqRiskReasons json.RawMessage
+   All new fields use omitempty — absent on malicious_user_sec_event type events.
+
+6. Total tests: 20 passing. go build + go vet clean.
+
+---
+Last updated: 2026-04-27. ALL PROMPTS COMPLETE + live API confirmed + detail panel UI complete.

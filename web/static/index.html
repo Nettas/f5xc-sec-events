@@ -142,14 +142,16 @@
             <table id="events-table">
               <thead>
                 <tr>
-                  <th data-col="time"          onclick="sortBy('time')">Time <span class="sort-icon"></span></th>
-                  <th data-col="src_ip"        onclick="sortBy('src_ip')">Src IP <span class="sort-icon"></span></th>
-                  <th data-col="method"        onclick="sortBy('method')">Method <span class="sort-icon"></span></th>
-                  <th data-col="req_path"      onclick="sortBy('req_path')">Path <span class="sort-icon"></span></th>
-                  <th data-col="response_code" onclick="sortBy('response_code')">Code <span class="sort-icon"></span></th>
-                  <th data-col="waf_action"    onclick="sortBy('waf_action')">Action <span class="sort-icon"></span></th>
-                  <th data-col="attack_type"   onclick="sortBy('attack_type')">Attack Type <span class="sort-icon"></span></th>
-                  <th data-col="severity"      onclick="sortBy('severity')">Severity <span class="sort-icon"></span></th>
+                  <th data-col="time"           onclick="sortBy('time')">Time <span class="sort-icon"></span></th>
+                  <th data-col="country"        onclick="sortBy('country')">Country <span class="sort-icon"></span></th>
+                  <th data-col="city"           onclick="sortBy('city')">City <span class="sort-icon"></span></th>
+                  <th data-col="src_ip"         onclick="sortBy('src_ip')">Src IP <span class="sort-icon"></span></th>
+                  <th data-col="method"         onclick="sortBy('method')">Method <span class="sort-icon"></span></th>
+                  <th data-col="rsp_code"       onclick="sortBy('rsp_code')">Rsp Code <span class="sort-icon"></span></th>
+                  <th data-col="sec_event_type" onclick="sortBy('sec_event_type')">Event Type <span class="sort-icon"></span></th>
+                  <th data-col="action"         onclick="sortBy('action')">Action <span class="sort-icon"></span></th>
+                  <th data-col="authority"      onclick="sortBy('authority')">Domain <span class="sort-icon"></span></th>
+                  <th data-col="req_path"       onclick="sortBy('req_path')">Path <span class="sort-icon"></span></th>
                 </tr>
               </thead>
               <tbody id="events-tbody"></tbody>

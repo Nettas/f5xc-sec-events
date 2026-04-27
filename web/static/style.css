@@ -252,7 +252,9 @@ tbody tr {
   transition: background .1s;
 }
 tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: var(--surface2); }
+tbody tr.data-row { cursor: pointer; }
+tbody tr.data-row:hover { background: var(--surface2); }
+tbody tr.row-expanded { background: var(--surface2); }
 
 tbody tr.row-block { border-left: 3px solid var(--accent); }
 tbody tr.row-allow { border-left: 3px solid var(--green); }
@@ -441,6 +443,95 @@ tbody td {
   border-radius: var(--radius);
   padding: 10px 14px;
   line-height: 1.5;
+}
+
+/* ── Detail panel (expanded row) ─────────────────────────────────── */
+tr.detail-row td {
+  padding: 0;
+  background: var(--bg);
+  border-bottom: 2px solid var(--accent);
+}
+
+.detail-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.detail-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+}
+
+.detail-section.detail-signatures {
+  grid-column: 1 / -1;
+}
+
+.detail-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 5px 14px;
+  align-items: start;
+}
+
+.detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  padding-top: 1px;
+}
+
+.detail-value {
+  font-size: 12px;
+  color: var(--text);
+  word-break: break-all;
+  font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+}
+
+.detail-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* Signature cards */
+.sig-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.sig-card:last-child { margin-bottom: 0; }
+
+.sig-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sig-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
 }
 
 /* ── Utilities ────────────────────────────────────────────────────── */
