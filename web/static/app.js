@@ -5,7 +5,7 @@ let currentPage = 1;
 const PAGE_SIZE = 15;
 let sortCol = 'time';
 let sortDir = 'desc';
-let currentWindow = '1h';
+let currentWindow = 1;
 let expandedIdx = null;   // index in filtered[] of the currently-expanded row
 
 let timelineChart = null;
@@ -107,10 +107,10 @@ function toggleKeyVisibility() {
 }
 
 /* ── Controls ─────────────────────────────────────────────────────── */
-function setWindow(w) {
-  currentWindow = w;
-  document.getElementById('btn-1h').classList.toggle('active', w === '1h');
-  document.getElementById('btn-24h').classList.toggle('active', w === '24h');
+function onWindowSlider(val) {
+  currentWindow = parseInt(val, 10);
+  const label = currentWindow === 1 ? 'Last 1 hour' : `Last ${currentWindow} hours`;
+  document.getElementById('window-label').textContent = label;
   if (getApiKey()) refresh();
 }
 

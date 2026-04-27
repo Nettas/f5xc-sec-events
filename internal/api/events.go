@@ -15,19 +15,13 @@ import (
 //
 //   - namespace: F5 XC namespace (e.g. "s-iannetta")
 //   - lbName:    virtual_host / HTTP LB name to filter on (empty = no filter)
-//   - window:    "1h" or "24h"
-func (c *Client) FetchEvents(ctx context.Context, namespace, lbName, window string) ([]SecurityEvent, error) {
-	now := time.Now().UTC()
-	var startTime time.Time
-
-	switch window {
-	case "1h":
-		startTime = now.Add(-1 * time.Hour)
-	case "24h":
-		startTime = now.Add(-24 * time.Hour)
-	default:
-		return nil, fmt.Errorf("invalid window %q: must be \"1h\" or \"24h\"", window)
+//   - hours:     look-back window in hours (1–24)
+func (c *Client) FetchEvents(ctx context.Context, namespace, lbName string, hours int) ([]SecurityEvent, error) {
+	if hours < 1 || hours > 24 {
+		return nil, fmt.Errorf("invalid hours %d: must be 1–24", hours)
 	}
+	now := time.Now().UTC()
+	startTime := now.Add(-time.Duration(hours) * time.Hour)
 
 	query := ""
 	if lbName != "" {

@@ -113,7 +113,7 @@ func TestEventsHandler_ReturnsJSONArray(t *testing.T) {
 	srv, cleanup := newTestServer(t, okF5Handler)
 	defer cleanup()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/events?window=1h&lb=my-lb", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/events?window=1&lb=my-lb", nil)
 	rec := httptest.NewRecorder()
 	srv.eventsHandler(rec, req)
 
@@ -183,7 +183,7 @@ func TestEventsHandler_UpstreamError(t *testing.T) {
 	})
 	defer cleanup()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/events?window=1h", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/events?window=1", nil)
 	rec := httptest.NewRecorder()
 	srv.eventsHandler(rec, req)
 
@@ -199,7 +199,7 @@ func TestEventsHandler_EmptyEventsIsArray(t *testing.T) {
 	})
 	defer cleanup()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/events?window=1h", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/events?window=1", nil)
 	rec := httptest.NewRecorder()
 	srv.eventsHandler(rec, req)
 
@@ -215,7 +215,7 @@ func TestExportHandler_ContentTypeCSV(t *testing.T) {
 	srv, cleanup := newTestServer(t, okF5Handler)
 	defer cleanup()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/export?window=1h", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/export?window=1", nil)
 	rec := httptest.NewRecorder()
 	srv.exportHandler(rec, req)
 
@@ -232,7 +232,7 @@ func TestExportHandler_ContentDisposition(t *testing.T) {
 	srv, cleanup := newTestServer(t, okF5Handler)
 	defer cleanup()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/export?window=1h", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/export?window=1", nil)
 	rec := httptest.NewRecorder()
 	srv.exportHandler(rec, req)
 
@@ -252,7 +252,7 @@ func TestExportHandler_CSVHasHeaderAndRows(t *testing.T) {
 	srv, cleanup := newTestServer(t, okF5Handler)
 	defer cleanup()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/export?window=1h", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/export?window=1", nil)
 	rec := httptest.NewRecorder()
 	srv.exportHandler(rec, req)
 

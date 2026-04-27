@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	window    := flag.String("window",    "1h",  "Time window: 1h or 24h")
+	window    := flag.Int("window",    1,  "Time window in hours (1–24)")
 	namespace := flag.String("namespace", "",    "F5 XC namespace (overrides F5XC_NAMESPACE)")
 	lb        := flag.String("lb",        "",    "HTTP Load Balancer name to filter events")
 	serve     := flag.Bool("serve",       false, "Start web server mode")

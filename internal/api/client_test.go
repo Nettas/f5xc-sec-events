@@ -39,7 +39,7 @@ func TestFetchEvents_1hWindow(t *testing.T) {
 	defer srv.Close()
 
 	client := newTestClient(srv.URL, "test-key")
-	_, err := client.FetchEvents(context.Background(), "test-ns", "my-lb", "1h")
+	_, err := client.FetchEvents(context.Background(), "test-ns", "my-lb", 1)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestFetchEvents_24hWindow(t *testing.T) {
 	defer srv.Close()
 
 	client := newTestClient(srv.URL, "test-key")
-	_, err := client.FetchEvents(context.Background(), "test-ns", "", "24h")
+	_, err := client.FetchEvents(context.Background(), "test-ns", "", 24)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -99,7 +99,7 @@ func TestFetchEvents_AuthHeader(t *testing.T) {
 	defer srv.Close()
 
 	client := newTestClient(srv.URL, "my-secret-key")
-	client.FetchEvents(context.Background(), "ns", "", "1h")
+	client.FetchEvents(context.Background(), "ns", "", 1)
 
 	if gotAuth != "APIToken my-secret-key" {
 		t.Errorf("Authorization header = %q, want %q", gotAuth, "APIToken my-secret-key")
@@ -114,7 +114,7 @@ func TestFetchEvents_Non200(t *testing.T) {
 	defer srv.Close()
 
 	client := newTestClient(srv.URL, "bad-key")
-	_, err := client.FetchEvents(context.Background(), "ns", "", "1h")
+	_, err := client.FetchEvents(context.Background(), "ns", "", 1)
 	if err == nil {
 		t.Fatal("expected error for non-200 response, got nil")
 	}
@@ -123,11 +123,15 @@ func TestFetchEvents_Non200(t *testing.T) {
 	}
 }
 
-// TestFetchEvents_InvalidWindow checks that an unknown window string returns an error.
+// TestFetchEvents_InvalidWindow checks that an out-of-range hours value returns an error.
 func TestFetchEvents_InvalidWindow(t *testing.T) {
 	client := &Client{httpClient: &http.Client{}}
-	_, err := client.FetchEvents(context.Background(), "ns", "", "7d")
+	_, err := client.FetchEvents(context.Background(), "ns", "", 0)
 	if err == nil {
-		t.Fatal("expected error for invalid window, got nil")
+		t.Fatal("expected error for hours=0, got nil")
+	}
+	_, err = client.FetchEvents(context.Background(), "ns", "", 25)
+	if err == nil {
+		t.Fatal("expected error for hours=25, got nil")
 	}
 }

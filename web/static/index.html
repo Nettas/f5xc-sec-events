@@ -58,9 +58,10 @@
 
         <!-- ── Time Window ──────────────────────────────── -->
         <div class="nav-label" style="margin-top:20px;">Time Window</div>
-        <div class="window-toggle">
-          <button id="btn-1h"  class="win-btn active" onclick="setWindow('1h')">1h</button>
-          <button id="btn-24h" class="win-btn"        onclick="setWindow('24h')">24h</button>
+        <div class="window-slider-row">
+          <input id="window-slider" type="range" min="1" max="24" value="1"
+                 class="window-slider" oninput="onWindowSlider(this.value)" />
+          <span id="window-label" class="window-label">Last 1 hour</span>
         </div>
 
         <!-- ── Load Balancer ────────────────────────────── -->

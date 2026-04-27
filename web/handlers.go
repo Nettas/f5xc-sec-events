@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/Nettas/f5xc-sec-events/internal/api"
@@ -54,9 +55,9 @@ func (s *Server) eventsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	window, lb := queryParams(r)
+	hours, lb := queryParams(r)
 
-	events, err := client.FetchEvents(r.Context(), namespace, lb, window)
+	events, err := client.FetchEvents(r.Context(), namespace, lb, hours)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("fetch events: %v", err), http.StatusBadGateway)
 		return
@@ -85,9 +86,9 @@ func (s *Server) exportHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	window, lb := queryParams(r)
+	hours, lb := queryParams(r)
 
-	events, err := client.FetchEvents(r.Context(), namespace, lb, window)
+	events, err := client.FetchEvents(r.Context(), namespace, lb, hours)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("fetch events: %v", err), http.StatusBadGateway)
 		return
@@ -120,11 +121,13 @@ func (s *Server) configHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// queryParams extracts window and lb from the request, applying defaults.
-func queryParams(r *http.Request) (window, lb string) {
-	window = r.URL.Query().Get("window")
-	if window == "" {
-		window = "1h"
+// queryParams extracts the time window (in hours, 1–24) and lb from the request.
+func queryParams(r *http.Request) (hours int, lb string) {
+	hours = 1
+	if w := r.URL.Query().Get("window"); w != "" {
+		if n, err := strconv.Atoi(w); err == nil && n >= 1 && n <= 24 {
+			hours = n
+		}
 	}
 	lb = r.URL.Query().Get("lb")
 	return
