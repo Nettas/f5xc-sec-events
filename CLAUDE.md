@@ -59,10 +59,12 @@ F5XC_API_KEY=xxx /home/coder/go/bin/go run ./cmd/f5xc-sec --serve --port 8080
 ```
 
 ## Current Status
-- ALL 5 PROMPTS COMPLETE + UI settings + namespace switching + live API field fixes
+- ALL 5 PROMPTS COMPLETE + UI settings + namespace switching + live API field fixes + 2026-04-27 hardening
 - `go build ./...`, `go test ./...` (20 tests), `go vet ./...` all pass
 - Web server starts without env key: `./bin/f5xc-sec --serve --port 8080` → paste key in browser
 - GET /api/config seeds namespace field from server config; user can override freely
 - CLI/export still require F5XC_API_KEY env var
-- Live API confirmed 2026-04-20: vh_name filter, double-encoded events, string lat/lon, int64 timestamps, string score fields
-- If new 502 errors appear: check models.go field type — API sends many numeric-looking fields as JSON strings
+- Live API confirmed 2026-04-20: vh_name filter, double-encoded events, string lat/lon, string score fields
+- 2026-04-27: ALL count fields (req_count, waf_sec_event_count, etc.) changed int→string; start_time/end_time in SecurityEvent changed int64→string; PolicyHits (json.RawMessage), TimeseriesEnabled (bool), Extra (map, json:"-") added to SecurityEvent
+- 2026-04-27: Chart.js SRI integrity hash removed from index.html (was invalid, blocked script load)
+- Unknown/extra API fields are silently ignored by default (json.Unmarshal, no DisallowUnknownFields)

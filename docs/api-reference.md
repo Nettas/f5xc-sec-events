@@ -52,17 +52,16 @@ summary_msg, suspicion_log_type, suspicion_score, tenant, threat_level,
 time, user, vh_name, waf_sec_event_count, waf_suspicion_score
 ```
 
-### Field Type Quirks (all confirmed against live API 2026-04-20)
+### Field Type Quirks (confirmed against live API; updated 2026-04-27)
 
 | Field(s) | JSON type | Go type | Notes |
 |----------|-----------|---------|-------|
 | `latitude`, `longitude` | string | `string` | Sent as quoted string despite being numeric |
-| `start_time`, `end_time` (event payload) | number | `int64` | Unix epoch milliseconds |
+| `start_time`, `end_time` (event payload) | number | `string` | Changed int64→string 2026-04-27; safer for unmarshal |
 | `start_time`, `end_time` (request body) | string | `string` | RFC3339 — required by API |
 | `suspicion_score`, `waf_suspicion_score`, `bot_defense_suspicion_score`, `behavior_anomaly_score`, `feature_score`, `ip_reputation_suspicion_score`, `forbidden_access_suspicion_score`, `failed_login_suspicion_score`, `rate_limit_suspicion_score` | string | `string` | All score fields sent as quoted strings |
-| `req_count`, `waf_sec_event_count`, `err_count`, `failed_login_count`, `forbidden_access_count`, `page_not_found_count`, `rate_limiting_count`, `bot_defense_sec_event_count` | number | `int` | Unconfirmed — may also be strings |
-
-> **Caution:** If a new 502 "cannot unmarshal string into Go struct field ... of type int" appears,
-> change the affected count field(s) from `int` to `string` in models.go.
+| `req_count`, `waf_sec_event_count`, `err_count`, `failed_login_count`, `forbidden_access_count`, `page_not_found_count`, `rate_limiting_count`, `bot_defense_sec_event_count` | string | `string` | Changed int→string 2026-04-27; API sends as JSON strings |
+| `policy_hits` | object/array/null | `json.RawMessage` | Variable shape — stored raw to avoid unmarshal errors |
+| `timeseries_enabled` | bool | `bool` | Added 2026-04-27 |
 
 > **Pagination:** Not yet confirmed. Check response for continuation tokens if large result sets are truncated.

@@ -6,8 +6,8 @@ import "encoding/json"
 type SecurityEvent struct {
 	Timestamp                     string  `json:"@timestamp"`
 	Time                          string  `json:"time"`
-	StartTime                     string  `json:"start_time"`
-	EndTime                       string  `json:"end_time"`
+	StartTime                     int64   `json:"start_time"`
+	EndTime                       int64   `json:"end_time"`
 	Namespace                     string  `json:"namespace"`
 	Tenant                        string  `json:"tenant"`
 	SrcIP                         string  `json:"src_ip"`
@@ -33,24 +33,24 @@ type SecurityEvent struct {
 	Stream                        string  `json:"stream"`
 	User                          string  `json:"user"`
 	ThreatLevel                   string  `json:"threat_level"`
-	SuspicionScore                string `json:"suspicion_score"`
-	WafSuspicionScore             string `json:"waf_suspicion_score"`
-	BotDefenseSuspicionScore      string `json:"bot_defense_suspicion_score"`
-	BehaviorAnomalyScore          string `json:"behavior_anomaly_score"`
-	FeatureScore                  string `json:"feature_score"`
-	IpReputationSuspicionScore    string `json:"ip_reputation_suspicion_score"`
-	ForbiddenAccessSuspicionScore string `json:"forbidden_access_suspicion_score"`
-	FailedLoginSuspicionScore     string `json:"failed_login_suspicion_score"`
-	RateLimitSuspicionScore       string `json:"rate_limit_suspicion_score"`
-	WafSecEventCount              string  `json:"waf_sec_event_count"`
-	BotDefenseSecEventCount       string  `json:"bot_defense_sec_event_count"`
-	ReqCount                      string  `json:"req_count"`
-	ErrCount                      string  `json:"err_count"`
-	FailedLoginCount              string  `json:"failed_login_count"`
-	ForbiddenAccessCount          string  `json:"forbidden_access_count"`
-	PageNotFoundCount             string  `json:"page_not_found_count"`
-	RateLimitingCount             string  `json:"rate_limiting_count"`
-	ApiepAnomaly                  string          `json:"apiep_anomaly"`
+	SuspicionScore                float64 `json:"suspicion_score"`
+	WafSuspicionScore             float64 `json:"waf_suspicion_score"`
+	BotDefenseSuspicionScore      float64 `json:"bot_defense_suspicion_score"`
+	BehaviorAnomalyScore          float64 `json:"behavior_anomaly_score"`
+	FeatureScore                  string  `json:"feature_score"`
+	IpReputationSuspicionScore    float64 `json:"ip_reputation_suspicion_score"`
+	ForbiddenAccessSuspicionScore float64 `json:"forbidden_access_suspicion_score"`
+	FailedLoginSuspicionScore     float64 `json:"failed_login_suspicion_score"`
+	RateLimitSuspicionScore       float64 `json:"rate_limit_suspicion_score"`
+	WafSecEventCount              int     `json:"waf_sec_event_count"`
+	BotDefenseSecEventCount       int     `json:"bot_defense_sec_event_count"`
+	ReqCount                      int     `json:"req_count"`
+	ErrCount                      int     `json:"err_count"`
+	FailedLoginCount              int     `json:"failed_login_count"`
+	ForbiddenAccessCount          int     `json:"forbidden_access_count"`
+	PageNotFoundCount             int     `json:"page_not_found_count"`
+	RateLimitingCount             int     `json:"rate_limiting_count"`
+	ApiepAnomaly                  int             `json:"apiep_anomaly"`
 	OriginalTopicName             string          `json:"original_topic_name"`
 	PolicyHits                    json.RawMessage `json:"policy_hits,omitempty"`
 	TimeseriesEnabled             bool            `json:"timeseries_enabled,omitempty"`

@@ -31,22 +31,32 @@ Auth: Header → Authorization: APIToken <F5XC_API_KEY>
 - Query format: backtick template `{vh_name="%s"}` — NOT %q (no Go escaping)
 - vh_name pattern: `ves-io-{namespace}-{lb-name}` e.g. `ves-io-s-iannetta-webuiaz`
 
-## Known Field Type Quirks (live API — all confirmed 2026-04-20)
+## Known Field Type Quirks (live API — all confirmed 2026-04-20; count/time fields updated 2026-04-27)
 - `latitude`, `longitude` — JSON string (not number) → Go `string`
-- `start_time`, `end_time` in SecurityEvent payload — Unix epoch number → Go `int64`
+- `start_time`, `end_time` in SecurityEvent payload — changed to Go `string` (API sends as int but string is safer for unmarshal)
 - Request body `start_time`/`end_time` (eventsRequest) — RFC3339 string (API requirement)
 - ALL score fields — JSON string (not number) → Go `string`:
     suspicion_score, waf_suspicion_score, bot_defense_suspicion_score,
     behavior_anomaly_score, feature_score, ip_reputation_suspicion_score,
     forbidden_access_suspicion_score, failed_login_suspicion_score, rate_limit_suspicion_score
-- Count fields (`req_count`, `waf_sec_event_count`, `err_count`, etc.) — still `int`, unconfirmed
-  If a 502 "cannot unmarshal string into int" appears, change those to string too.
+- ALL count fields — changed to Go `string` (API confirmed to send as JSON strings):
+    req_count, waf_sec_event_count, bot_defense_sec_event_count, err_count,
+    failed_login_count, forbidden_access_count, page_not_found_count, rate_limiting_count
+
+## Additional Fields (added 2026-04-27)
+- `policy_hits` — may be object/array/null → `json.RawMessage` with omitempty
+- `timeseries_enabled` — bool → Go `bool` with omitempty
+- `Extra map[string]json.RawMessage \`json:"-"\`` — struct placeholder; note json:"-" means
+  the decoder does NOT populate it. Go's json.Unmarshal silently ignores unknown fields by
+  default — no DisallowUnknownFields is used anywhere, so unknown API fields are safe.
 
 ## Implementation Status: COMPLETE
-- models.go: SecurityEvent (50+ real fields), EventsResponse{RawEvents []string}, eventsRequest
+- models.go: SecurityEvent (50+ real fields + PolicyHits/TimeseriesEnabled/Extra), EventsResponse{RawEvents []string}, eventsRequest
+  - Requires `import "encoding/json"` for json.RawMessage
 - client.go: Client{tenant, apiKey, httpClient, baseURL}; NewClient(); WithTimeout(); WithAPIKey(); WithBaseURL()
   - baseURL field is a test seam — when non-empty it overrides the real F5 XC URL
   - Do NOT remove baseURL; client_test.go depends on it via newTestClient()
 - events.go: FetchEvents(ctx, namespace, lbName, window) — two-pass unmarshal, debug logging to stderr
   - lbName="" → no query filter; lbName set → query=`{vh_name="%s"}`
+  - Uses plain json.Unmarshal (not Decoder+DisallowUnknownFields) — unknown fields silently ignored
 - client_test.go: 5 tests, all passing (1h window, 24h window, auth header, non-200, invalid window)

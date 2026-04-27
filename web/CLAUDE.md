@@ -40,7 +40,8 @@ Embedded Go HTTP server that:
 - Both handlers return HTTP 405 on non-GET; HTTP 502 on FetchEvents error
 
 ### static/index.html
-- Loads Chart.js 4.4.1 from cdnjs with SRI integrity hash
+- Loads Chart.js 4.4.1 from cdnjs — NO integrity/crossorigin attributes (hash was invalid and blocked load)
+  `<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>`
 - Layout: sidebar (controls) + main (stats → charts → table)
 - IDs used by app.js: `loading`, `error-banner`, `error-text`, `btn-1h`, `btn-24h`,
   `lb-input`, `stat-total`, `stat-blocked`, `stat-allowed`, `stat-top-attack`,

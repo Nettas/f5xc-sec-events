@@ -500,8 +500,47 @@ csv.go updated: score fields written directly (no %g formatting needed).
 Test mock events updated to use string literals for these fields.
 All 20 tests pass. go build + go vet clean.
 
-OUTSTANDING RISK: int count fields (req_count, waf_sec_event_count, err_count, etc.) are
-still typed as Go `int`. If a 502 "cannot unmarshal string into int" appears, change those
-to `string` in models.go using the same pattern.
+All 20 tests pass. go build + go vet clean.
 
-Last updated: 2026-04-20. ALL PROMPTS COMPLETE + UI settings + namespace switching + live API fixes.
+---
+Count Field & Timestamp Type Fix — 2026-04-27
+
+Resolved outstanding risk: all eight count fields changed from Go `int` to `string`:
+  req_count, waf_sec_event_count, bot_defense_sec_event_count, err_count,
+  failed_login_count, forbidden_access_count, page_not_found_count, rate_limiting_count
+
+Also changed SecurityEvent.StartTime and EndTime from `int64` to `string` — API sends
+them as integers but string is safer and avoids future unmarshal failures.
+
+csv.go: removed fmt.Sprintf("%d", ...) for count fields — written directly as strings.
+csv_test.go + handlers_test.go: int literals in mock structs updated to quoted strings.
+All 20 tests pass. go build + go vet clean.
+
+---
+SecurityEvent Struct Hardening — 2026-04-27
+
+Added three fields to SecurityEvent in models.go:
+  PolicyHits         json.RawMessage            `json:"policy_hits,omitempty"`
+  TimeseriesEnabled  bool                       `json:"timeseries_enabled,omitempty"`
+  Extra              map[string]json.RawMessage `json:"-"`
+
+models.go now imports "encoding/json" for json.RawMessage.
+
+Note on Extra: json:"-" means the JSON decoder never populates it — it is a struct
+placeholder only. Go's json.Unmarshal silently discards unknown fields by default;
+no DisallowUnknownFields is used anywhere in events.go, so unknown API fields are safe.
+
+All 20 tests pass. go build + go vet clean.
+
+---
+Chart.js SRI Hash Removed — 2026-04-27
+
+web/static/index.html: removed integrity, crossorigin, and referrerpolicy attributes
+from the Chart.js 4.4.1 script tag. The bundled hash was invalid and caused the browser
+to block the script entirely, breaking both charts in the dashboard.
+
+Script tag is now:
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+---
+Last updated: 2026-04-27. ALL PROMPTS COMPLETE + UI settings + namespace switching + live API fixes + type hardening.
