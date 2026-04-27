@@ -36,7 +36,7 @@ var mockF5Response = marshalRawEvents([]api.SecurityEvent{
 		Country: "US", City: "New York",
 		VhName: "ves-io-test-ns-my-lb", AppType: "web",
 		ThreatLevel: "high", SuspicionScore: "85.5",
-		WafSecEventCount: 3, ReqCount: 10, WafSuspicionScore: "75",
+		WafSecEventCount: "3", ReqCount: "10", WafSuspicionScore: "75",
 		SummaryMsg: "SQL injection attempt", Namespace: "test-ns", Tenant: "f5-sa",
 	},
 	{
@@ -44,7 +44,7 @@ var mockF5Response = marshalRawEvents([]api.SecurityEvent{
 		Country: "GB", City: "London",
 		VhName: "ves-io-test-ns-my-lb", AppType: "web",
 		ThreatLevel: "low", SuspicionScore: "10",
-		WafSecEventCount: 0, ReqCount: 5, WafSuspicionScore: "0",
+		WafSecEventCount: "0", ReqCount: "5", WafSuspicionScore: "0",
 		SummaryMsg: "", Namespace: "test-ns", Tenant: "f5-sa",
 	},
 })
