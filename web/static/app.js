@@ -20,6 +20,7 @@ const PALETTE = [
 
 /* ── Session storage keys ─────────────────────────────────────────── */
 const SS_KEY       = 'f5xc_api_key';
+const SS_TENANT    = 'f5xc_tenant';
 const SS_NAMESPACE = 'f5xc_namespace';
 const SS_LB        = 'f5xc_lb';
 
@@ -42,6 +43,9 @@ async function loadServerConfig() {
     const resp = await fetch('/api/config');
     if (!resp.ok) return;
     const cfg = await resp.json();
+    if (cfg.tenant && !sessionStorage.getItem(SS_TENANT)) {
+      document.getElementById('tenant-input').value = cfg.tenant;
+    }
     if (cfg.namespace && !sessionStorage.getItem(SS_NAMESPACE)) {
       document.getElementById('namespace-input').value = cfg.namespace;
     }
@@ -50,20 +54,24 @@ async function loadServerConfig() {
 
 /* ── Connection settings ──────────────────────────────────────────── */
 function getApiKey()   { return document.getElementById('api-key-input').value.trim(); }
+function getTenant()   { return document.getElementById('tenant-input').value.trim(); }
 function getNamespace(){ return document.getElementById('namespace-input').value.trim(); }
 function getLB()       { return document.getElementById('lb-input').value.trim(); }
 
 function restoreSettings() {
-  const key = sessionStorage.getItem(SS_KEY);
-  const ns  = sessionStorage.getItem(SS_NAMESPACE);
-  const lb  = sessionStorage.getItem(SS_LB);
-  if (key) document.getElementById('api-key-input').value = key;
-  if (ns)  document.getElementById('namespace-input').value = ns;
-  if (lb)  document.getElementById('lb-input').value = lb;
+  const key    = sessionStorage.getItem(SS_KEY);
+  const tenant = sessionStorage.getItem(SS_TENANT);
+  const ns     = sessionStorage.getItem(SS_NAMESPACE);
+  const lb     = sessionStorage.getItem(SS_LB);
+  if (key)    document.getElementById('api-key-input').value = key;
+  if (tenant) document.getElementById('tenant-input').value = tenant;
+  if (ns)     document.getElementById('namespace-input').value = ns;
+  if (lb)     document.getElementById('lb-input').value = lb;
 }
 
 function saveSettings() {
   sessionStorage.setItem(SS_KEY,       getApiKey());
+  sessionStorage.setItem(SS_TENANT,    getTenant());
   sessionStorage.setItem(SS_NAMESPACE, getNamespace());
   sessionStorage.setItem(SS_LB,        getLB());
 }
@@ -125,12 +133,13 @@ function exportCSV() {
   if (!key) { showError('Enter your API key first.'); return; }
 
   const lb     = getLB();
+  const tenant = getTenant();
   const ns     = getNamespace();
   const params = new URLSearchParams({ window: currentWindow });
   if (lb) params.set('lb', lb);
 
   showLoading(true);
-  fetch(`/api/export?${params}`, { headers: buildHeaders(key, ns) })
+  fetch(`/api/export?${params}`, { headers: buildHeaders(key, tenant, ns) })
     .then(r => {
       if (!r.ok) return r.text().then(t => { throw new Error(t); });
       return r.blob();
@@ -153,8 +162,8 @@ function dismissError() {
 }
 
 /* ── HTTP helpers ─────────────────────────────────────────────────── */
-function buildHeaders(apiKey, namespace) {
-  return { 'X-Api-Key': apiKey, 'X-Namespace': namespace };
+function buildHeaders(apiKey, tenant, namespace) {
+  return { 'X-Api-Key': apiKey, 'X-Tenant': tenant, 'X-Namespace': namespace };
 }
 
 /* ── Fetch ────────────────────────────────────────────────────────── */
@@ -162,14 +171,15 @@ async function fetchEvents(window, lb) {
   showLoading(true);
   dismissError();
 
-  const key = getApiKey();
-  const ns  = getNamespace();
+  const key    = getApiKey();
+  const tenant = getTenant();
+  const ns     = getNamespace();
 
   try {
     const params = new URLSearchParams({ window });
     if (lb) params.set('lb', lb);
 
-    const resp = await fetch(`/api/events?${params}`, { headers: buildHeaders(key, ns) });
+    const resp = await fetch(`/api/events?${params}`, { headers: buildHeaders(key, tenant, ns) });
 
     if (resp.status === 401) {
       const body = await resp.json().catch(() => ({}));

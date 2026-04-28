@@ -108,9 +108,10 @@ Open **http://localhost:4000** in your browser. You should see the dark-theme da
 **First-time setup in the browser:**
 1. Expand the **Connection** section in the left sidebar
 2. Paste your API token into the **API Key** field
-3. Confirm the **Namespace** shows your namespace (e.g. `s-iannetta`)
-4. Enter your **Load Balancer** name (e.g. `my-lb`) — leave blank for all LBs
-5. Click **⟳ Refresh**
+3. Confirm the **Tenant** shows your tenant (e.g. `f5-sa`) — seeded from `F5XC_TENANT`
+4. Confirm the **Namespace** shows your namespace (e.g. `s-iannetta`) — seeded from `F5XC_NAMESPACE`
+5. Enter your **Load Balancer** name (e.g. `my-lb`) — leave blank for all LBs
+6. Click **⟳ Refresh**
 
 > The API key is stored in `sessionStorage` only — it is never saved to disk and clears
 > automatically when you close the browser tab.
@@ -119,7 +120,7 @@ Open **http://localhost:4000** in your browser. You should see the dark-theme da
 
 ## Running — Web Dashboard (recommended)
 
-The dashboard lets you enter your API key, namespace, and LB name directly in the
+The dashboard lets you enter your API key, tenant, namespace, and LB name directly in the
 browser — no environment variables required at startup.
 
 ```bash
@@ -199,7 +200,8 @@ source .env
 
 | Flag | Default | Description |
 |---|---|---|
-| `--window` | `1h` | Time window: `1h` or `24h` |
+| `--window` | `1` | Time window in hours (1–24) |
+| `--tenant` | `$F5XC_TENANT` | F5 XC tenant name (overrides env var) |
 | `--namespace` | `$F5XC_NAMESPACE` | F5 XC namespace (overrides env var) |
 | `--lb` | _(none)_ | HTTP Load Balancer name to filter events |
 | `--serve` | `false` | Start web dashboard mode |

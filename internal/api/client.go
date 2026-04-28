@@ -59,3 +59,14 @@ func (c *Client) WithAPIKey(key string) *Client {
 		baseURL:    c.baseURL,
 	}
 }
+
+// WithTenant returns a copy of the client with the tenant replaced.
+// Used by web handlers when the tenant is supplied per-request via the UI.
+func (c *Client) WithTenant(tenant string) *Client {
+	return &Client{
+		tenant:     tenant,
+		apiKey:     c.apiKey,
+		httpClient: c.httpClient,
+		baseURL:    c.baseURL,
+	}
+}

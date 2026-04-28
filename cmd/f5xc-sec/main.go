@@ -17,6 +17,7 @@ import (
 
 func main() {
 	window    := flag.Int("window",    1,  "Time window in hours (1–24)")
+	tenant    := flag.String("tenant",    "",    "F5 XC tenant (overrides F5XC_TENANT)")
 	namespace := flag.String("namespace", "",    "F5 XC namespace (overrides F5XC_NAMESPACE)")
 	lb        := flag.String("lb",        "",    "HTTP Load Balancer name to filter events")
 	serve     := flag.Bool("serve",       false, "Start web server mode")
@@ -38,6 +39,9 @@ func main() {
 		// Web server mode: start without env key — user can paste it in the dashboard.
 		fmt.Fprintf(os.Stderr, "warning: %v — enter API key in the dashboard UI\n", err)
 		cfg = config.Defaults()
+	}
+	if *tenant != "" {
+		cfg.Tenant = *tenant
 	}
 	if *namespace != "" {
 		cfg.Namespace = *namespace

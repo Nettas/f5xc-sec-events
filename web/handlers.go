@@ -15,25 +15,31 @@ import (
 // clientForRequest resolves the API client and namespace for a single HTTP request.
 //
 // Priority order (highest wins):
-//  1. X-Api-Key / X-Namespace request headers  (set by the dashboard UI)
-//  2. Server-level config loaded from env vars  (set at startup)
+//  1. X-Api-Key / X-Namespace / X-Tenant request headers  (set by the dashboard UI)
+//  2. Server-level config loaded from env vars             (set at startup)
 //
 // Returns nil if no API key is available from either source.
 func (s *Server) clientForRequest(r *http.Request) (*api.Client, string) {
 	apiKey    := r.Header.Get("X-Api-Key")
 	namespace := r.Header.Get("X-Namespace")
+	tenant    := r.Header.Get("X-Tenant")
 
 	if namespace == "" {
 		namespace = s.cfg.Namespace
 	}
 
+	client := s.client
+	if tenant != "" {
+		client = client.WithTenant(tenant)
+	}
+
 	switch {
 	case apiKey != "":
 		// UI-supplied key overrides whatever the server was started with.
-		return s.client.WithAPIKey(apiKey), namespace
+		return client.WithAPIKey(apiKey), namespace
 	case s.cfg.APIKey != "":
 		// Fall back to the env-var key.
-		return s.client, namespace
+		return client, namespace
 	default:
 		return nil, namespace
 	}
