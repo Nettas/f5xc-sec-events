@@ -15,6 +15,7 @@ visualizes them in real-time, and exports them to CSV.
 - [Running — CSV Export](#running--csv-export-to-file)
 - [All CLI Flags](#all-cli-flags)
 - [Environment Variables](#environment-variables)
+- [Event Types](#event-types)
 - [Development](#development)
 - [Troubleshooting](#troubleshooting)
 
@@ -221,6 +222,39 @@ source .env
 
 In **web server mode** (`--serve`), `F5XC_API_KEY` is optional — you can enter the key
 in the browser UI instead. In **CLI and export mode** it is required.
+
+---
+
+## Event Types
+
+The F5 XC API returns multiple security event types from the same endpoint. The dashboard
+color-codes each row by type and lets you filter to a single type using the **Type** dropdown
+above the event table.
+
+### Color coding
+
+| Event Type | Color | Description |
+|---|---|---|
+| `waf_sec_event` | F5 red `#E4003A` | Individual WAF request-level events (signatures, attack types) |
+| `svc_policy_sec_event` | Amber `#F59E0B` | Service policy decisions — policy hits, rate limiting, ACL |
+| `malicious_user_sec_event` | Purple `#8B5CF6` | Aggregated malicious-user activity (scores, counts per IP) |
+| `api_sec_event` | Cyan `#06B6D4` | API security events |
+| _(any other type)_ | Grey `#6B7280` | Unknown/future types — rendered as a flat key/value panel |
+
+A color-coded legend is displayed above the table showing only the types present in the
+current result set.
+
+### Detail panel sections by type
+
+**`waf_sec_event`** — Source | Request | Detection | Signatures
+
+**`svc_policy_sec_event`** — Source | Request | Decision | Policy Hits
+
+**`malicious_user_sec_event`** — Source | Activity | Risk | Decision
+
+**`api_sec_event`** — Source | Request | Detection | Signatures
+
+**Unknown types** — Flat key/value panel showing all non-empty fields
 
 ---
 

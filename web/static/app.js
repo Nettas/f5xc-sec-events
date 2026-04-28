@@ -1,15 +1,34 @@
 /* ── State ────────────────────────────────────────────────────────── */
-let allEvents   = [];
-let filtered    = [];
-let currentPage = 1;
-const PAGE_SIZE = 15;
-let sortCol = 'time';
-let sortDir = 'desc';
-let currentWindow = 1;
-let expandedIdx = null;   // index in filtered[] of the currently-expanded row
+let allEvents       = [];
+let filtered        = [];
+let currentPage     = 1;
+const PAGE_SIZE     = 15;
+let sortCol         = 'time';
+let sortDir         = 'desc';
+let currentWindow   = 1;
+let expandedIdx     = null;   // index in filtered[] of the currently-expanded row
+let currentTypeFilter = '';
 
 let timelineChart = null;
 let doughnutChart = null;
+
+/* ── Event type colour map ────────────────────────────────────────── */
+const EVENT_TYPE_COLORS = {
+  'waf_sec_event':            '#E4003A',
+  'svc_policy_sec_event':     '#F59E0B',
+  'malicious_user_sec_event': '#8B5CF6',
+  'api_sec_event':            '#06B6D4',
+};
+
+function eventTypeClass(type) {
+  switch (type) {
+    case 'waf_sec_event':            return 'evt-waf';
+    case 'svc_policy_sec_event':     return 'evt-svc-policy';
+    case 'malicious_user_sec_event': return 'evt-malicious-user';
+    case 'api_sec_event':            return 'evt-api-sec';
+    default:                         return type ? 'evt-unknown' : '';
+  }
+}
 
 /* ── Chart colour palette ─────────────────────────────────────────── */
 const PALETTE = [
@@ -122,6 +141,14 @@ function onWindowSlider(val) {
   if (getApiKey()) refresh();
 }
 
+function onTypeFilter(val) {
+  currentTypeFilter = val;
+  currentPage = 1;
+  expandedIdx = null;
+  applySort();
+  renderTable();
+}
+
 function refresh() {
   saveSettings();
   if (!getApiKey()) { showSetupPrompt(true); return; }
@@ -191,9 +218,10 @@ async function fetchEvents(window, lb) {
     }
 
     const data = await resp.json();
-    allEvents   = Array.isArray(data) ? data : [];
-    currentPage = 1;
-    expandedIdx = null;
+    allEvents         = Array.isArray(data) ? data : [];
+    currentPage       = 1;
+    expandedIdx       = null;
+    currentTypeFilter = '';
     renderAll();
   } catch (err) {
     showError(err.message);
@@ -208,6 +236,8 @@ function renderAll() {
   renderStats();
   renderTimeline();
   renderDoughnut();
+  updateTypeFilterDropdown();
+  renderTypeLegend();
   renderTable();
 }
 
@@ -306,8 +336,40 @@ function renderDoughnut() {
   const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   doughnutChart.data.labels                      = entries.map(e => e[0]);
   doughnutChart.data.datasets[0].data            = entries.map(e => e[1]);
-  doughnutChart.data.datasets[0].backgroundColor = entries.map((_, i) => PALETTE[i % PALETTE.length]);
+  doughnutChart.data.datasets[0].backgroundColor = entries.map(e => EVENT_TYPE_COLORS[e[0]] || PALETTE[0]);
   doughnutChart.update();
+}
+
+/* ── Type filter dropdown & legend ────────────────────────────────── */
+function updateTypeFilterDropdown() {
+  const sel = document.getElementById('type-filter');
+  if (!sel) return;
+  const types = [...new Set(allEvents.map(e => e.sec_event_type).filter(Boolean))].sort();
+  const prev  = currentTypeFilter;
+
+  sel.innerHTML = '<option value="">All Types</option>' +
+    types.map(t => {
+      const label = t.replace(/_/g, ' ');
+      return `<option value="${escHtml(t)}"${t === prev ? ' selected' : ''}>${escHtml(label)}</option>`;
+    }).join('');
+
+  if (prev && !types.includes(prev)) currentTypeFilter = '';
+}
+
+function renderTypeLegend() {
+  const el = document.getElementById('type-legend');
+  if (!el) return;
+  const types = [...new Set(allEvents.map(e => e.sec_event_type).filter(Boolean))];
+  if (!types.length) { el.innerHTML = ''; return; }
+
+  el.innerHTML = types.map(t => {
+    const color = EVENT_TYPE_COLORS[t] || '#6B7280';
+    const label = t.replace(/_/g, ' ');
+    return `<div class="legend-item">
+      <div class="legend-dot" style="background:${color}"></div>
+      <span>${escHtml(label)}</span>
+    </div>`;
+  }).join('');
 }
 
 /* ── Sort ─────────────────────────────────────────────────────────── */
@@ -326,7 +388,10 @@ function sortBy(col) {
 }
 
 function applySort() {
-  filtered = [...allEvents].sort((a, b) => {
+  const source = currentTypeFilter
+    ? allEvents.filter(e => e.sec_event_type === currentTypeFilter)
+    : allEvents;
+  filtered = [...source].sort((a, b) => {
     let av = a[sortCol] ?? '';
     let bv = b[sortCol] ?? '';
     if (typeof av === 'number' && typeof bv === 'number') return sortDir === 'asc' ? av - bv : bv - av;
@@ -371,11 +436,13 @@ function renderTable() {
   slice.forEach((e, i) => {
     const globalIdx = start + i;
     const isExpanded = expandedIdx === globalIdx;
-    const action   = (e.action || '').toUpperCase();
-    const rowClass = action === 'BLOCK' ? 'row-block' : action === 'ALLOW' ? 'row-allow' : '';
-    const badgeCls = action === 'BLOCK' ? 'badge-block' : action === 'ALLOW' ? 'badge-allow' : 'badge-other';
-    const domain   = e.authority || e.vh_name || '';
-    const evType   = (e.sec_event_type || '').replace(/_/g, ' ');
+    const action    = (e.action || '').toUpperCase();
+    const evtClass  = eventTypeClass(e.sec_event_type);
+    const actClass  = action === 'BLOCK' ? 'row-block' : action === 'ALLOW' ? 'row-allow' : '';
+    const rowClass  = [evtClass, actClass].filter(Boolean).join(' ');
+    const badgeCls  = action === 'BLOCK' ? 'badge-block' : action === 'ALLOW' ? 'badge-allow' : 'badge-other';
+    const domain    = e.authority || e.vh_name || '';
+    const evType    = (e.sec_event_type || '').replace(/_/g, ' ');
 
     html += `<tr class="data-row ${rowClass}${isExpanded ? ' row-expanded' : ''}" onclick="toggleRow(${globalIdx})">
       <td title="${escHtml(e.time)}">${isExpanded ? '▼ ' : '▶ '}${formatTime(e.time)}</td>
@@ -408,35 +475,47 @@ function toggleRow(idx) {
   renderTable();
 }
 
-/* ── Detail panel ─────────────────────────────────────────────────── */
+/* ── Detail panel dispatcher ──────────────────────────────────────── */
 function buildDetailPanel(e) {
+  switch (e.sec_event_type) {
+    case 'waf_sec_event':            return buildWafPanel(e);
+    case 'svc_policy_sec_event':     return buildSvcPolicyPanel(e);
+    case 'malicious_user_sec_event': return buildMaliciousUserPanel(e);
+    case 'api_sec_event':            return buildApiSecPanel(e);
+    default:                         return buildGenericPanel(e);
+  }
+}
+
+/* ── Shared detail row helper ─────────────────────────────────────── */
+function detailRow(label, val) {
+  const display = (val === null || val === undefined || val === '') ? '—' : escHtml(String(val));
+  return `<div class="detail-label">${escHtml(label)}</div><div class="detail-value">${display}</div>`;
+}
+
+/* ── WAF detail panel (existing behaviour preserved) ─────────────── */
+function buildWafPanel(e) {
   const sigs    = parseJsonField(e.signatures);
   const reasons = parseJsonField(e.req_risk_reasons);
   const firstReason = Array.isArray(reasons) && reasons.length
     ? (typeof reasons[0] === 'string' ? reasons[0] : JSON.stringify(reasons[0]))
     : null;
 
-  function row(label, val) {
-    const display = (val === null || val === undefined || val === '') ? '—' : escHtml(String(val));
-    return `<div class="detail-label">${escHtml(label)}</div><div class="detail-value">${display}</div>`;
-  }
-
   const srcSection = `
     <div class="detail-section">
       <div class="detail-section-title">Source</div>
       <div class="detail-grid">
-        ${row('IP',          e.src_ip)}
-        ${row('City',        e.city)}
-        ${row('Region',      e.region)}
-        ${row('Country',     e.country)}
-        ${row('ASN',         e.asn)}
-        ${row('Browser',     e.browser_type)}
-        ${row('Device',      e.device_type)}
-        ${row('User Agent',  e.user_agent)}
-        ${row('Src Site',    e.src_site)}
-        ${row('Src',         e.src)}
-        ${row('TLS FP',      e.tls_fingerprint)}
-        ${row('JA4 TLS FP',  e.ja4_tls_fingerprint)}
+        ${detailRow('IP',          e.src_ip)}
+        ${detailRow('City',        e.city)}
+        ${detailRow('Region',      e.region)}
+        ${detailRow('Country',     e.country)}
+        ${detailRow('ASN',         e.asn)}
+        ${detailRow('Browser',     e.browser_type)}
+        ${detailRow('Device',      e.device_type)}
+        ${detailRow('User Agent',  e.user_agent)}
+        ${detailRow('Src Site',    e.src_site)}
+        ${detailRow('Src',         e.src)}
+        ${detailRow('TLS FP',      e.tls_fingerprint)}
+        ${detailRow('JA4 TLS FP',  e.ja4_tls_fingerprint)}
       </div>
     </div>`;
 
@@ -444,14 +523,14 @@ function buildDetailPanel(e) {
     <div class="detail-section">
       <div class="detail-section-title">Request</div>
       <div class="detail-grid">
-        ${row('Req ID',       e.req_id)}
-        ${row('Authority',    e.authority)}
-        ${row('Path',         e.req_path)}
-        ${row('Method',       e.method)}
-        ${row('API Endpoint', e.api_endpoint)}
-        ${row('Req Size',     e.req_size || e.req_size === 0 ? e.req_size : null)}
-        ${row('Rsp Size',     e.rsp_size || e.rsp_size === 0 ? e.rsp_size : null)}
-        ${row('Rsp Code',     e.rsp_code || e.rsp_code === 0 ? e.rsp_code : null)}
+        ${detailRow('Req ID',       e.req_id)}
+        ${detailRow('Authority',    e.authority)}
+        ${detailRow('Path',         e.req_path)}
+        ${detailRow('Method',       e.method)}
+        ${detailRow('API Endpoint', e.api_endpoint)}
+        ${detailRow('Req Size',     e.req_size || e.req_size === 0 ? e.req_size : null)}
+        ${detailRow('Rsp Size',     e.rsp_size || e.rsp_size === 0 ? e.rsp_size : null)}
+        ${detailRow('Rsp Code',     e.rsp_code || e.rsp_code === 0 ? e.rsp_code : null)}
       </div>
     </div>`;
 
@@ -459,50 +538,280 @@ function buildDetailPanel(e) {
     <div class="detail-section">
       <div class="detail-section-title">Detection</div>
       <div class="detail-grid">
-        ${row('Event Type',   e.sec_event_type)}
-        ${row('Action',       e.action)}
-        ${row('Risk',         e.req_risk)}
-        ${row('Risk Reasons', firstReason)}
+        ${detailRow('Event Type',   e.sec_event_type)}
+        ${detailRow('Action',       e.action)}
+        ${detailRow('Risk',         e.req_risk)}
+        ${detailRow('Risk Reasons', firstReason)}
       </div>
     </div>`;
-
-  let sigsHtml = '';
-  if (Array.isArray(sigs) && sigs.length) {
-    sigsHtml = sigs.map(sig => {
-      const atkTypes = Array.isArray(sig.attack_types)
-        ? sig.attack_types.map(a => escHtml(a.name || String(a))).join(', ')
-        : escHtml(String(sig.attack_types || '—'));
-      const matchInfo = Array.isArray(sig.matching_info)
-        ? sig.matching_info.map(m => escHtml(typeof m === 'string' ? m : JSON.stringify(m))).join('; ')
-        : escHtml(String(sig.matching_info || '—'));
-      const sigState  = (sig.state || '').toLowerCase();
-      const sigBadge  = sigState === 'active' ? 'badge-block' : 'badge-other';
-      return `<div class="sig-card">
-        <div class="sig-header">
-          <span class="sig-name">${escHtml(String(sig.name || sig.id || 'Signature'))}</span>
-          <span class="badge ${sigBadge}">${escHtml(sig.state || '—')}</span>
-        </div>
-        <div class="detail-grid">
-          <div class="detail-label">ID</div><div class="detail-value">${escHtml(String(sig.id || '—'))}</div>
-          <div class="detail-label">Attack Type</div><div class="detail-value">${atkTypes}</div>
-          <div class="detail-label">Accuracy</div><div class="detail-value">${escHtml(sig.accuracy || '—')}</div>
-          <div class="detail-label">Context</div><div class="detail-value">${escHtml(sig.context || '—')}</div>
-          <div class="detail-label">Match Info</div><div class="detail-value">${matchInfo}</div>
-          <div class="detail-label">Risk</div><div class="detail-value">${escHtml(sig.risk || '—')}</div>
-        </div>
-      </div>`;
-    }).join('');
-  } else {
-    sigsHtml = '<div class="detail-empty">No signatures in this event</div>';
-  }
 
   const sigSection = `
     <div class="detail-section detail-signatures">
       <div class="detail-section-title">Signatures</div>
-      ${sigsHtml}
+      ${buildSigsHtml(sigs)}
     </div>`;
 
   return `<div class="detail-panel">${srcSection}${reqSection}${detSection}${sigSection}</div>`;
+}
+
+/* ── Service Policy detail panel ──────────────────────────────────── */
+function buildSvcPolicyPanel(e) {
+  const srcSection = `
+    <div class="detail-section">
+      <div class="detail-section-title">Source</div>
+      <div class="detail-grid">
+        ${detailRow('IP',          e.src_ip)}
+        ${detailRow('City',        e.city)}
+        ${detailRow('Region',      e.region)}
+        ${detailRow('Country',     e.country)}
+        ${detailRow('ASN',         e.asn)}
+        ${detailRow('Browser',     e.browser_type)}
+        ${detailRow('Device',      e.device_type)}
+        ${detailRow('User Agent',  e.user_agent)}
+        ${detailRow('Src Site',    e.src_site)}
+        ${detailRow('TLS FP',      e.tls_fingerprint)}
+        ${detailRow('JA4 TLS FP',  e.ja4_tls_fingerprint)}
+      </div>
+    </div>`;
+
+  const reqSection = `
+    <div class="detail-section">
+      <div class="detail-section-title">Request</div>
+      <div class="detail-grid">
+        ${detailRow('Req ID',           e.req_id)}
+        ${detailRow('Authority',        e.authority)}
+        ${detailRow('Path',             e.req_path)}
+        ${detailRow('Method',           e.method)}
+        ${detailRow('API Endpoint',     e.api_endpoint)}
+        ${detailRow('Req Size',         e.req_size)}
+        ${detailRow('Rsp Size',         e.rsp_size)}
+        ${detailRow('Rsp Code',         e.rsp_code)}
+        ${detailRow('Rsp Code Class',   e.rsp_code_class)}
+        ${detailRow('Rsp Code Details', e.rsp_code_details)}
+        ${detailRow('Original Path',    e.original_path)}
+        ${detailRow('Scheme',           e.scheme)}
+        ${detailRow('Protocol',         e.protocol)}
+      </div>
+    </div>`;
+
+  const decisionSection = `
+    <div class="detail-section">
+      <div class="detail-section-title">Decision</div>
+      <div class="detail-grid">
+        ${detailRow('Event Type',  e.sec_event_type)}
+        ${detailRow('Event Name',  e.sec_event_name)}
+        ${detailRow('Action',      e.action)}
+        ${detailRow('VH Name',     e.vh_name)}
+        ${detailRow('VH Type',     e.vh_type)}
+        ${detailRow('Stream',      e.stream)}
+        ${detailRow('Proxy Type',  e.proxy_type)}
+        ${detailRow('Connected',   e.connected_time)}
+        ${detailRow('Terminated',  e.terminated_time)}
+      </div>
+    </div>`;
+
+  const policyHitsData = parseJsonField(e.policy_hits);
+  const hitsArray = (policyHitsData && Array.isArray(policyHitsData.policy_hits))
+    ? policyHitsData.policy_hits
+    : (Array.isArray(policyHitsData) ? policyHitsData : []);
+
+  let hitsHtml = '';
+  if (hitsArray.length) {
+    hitsHtml = hitsArray.map(hit => `
+      <div class="sig-card">
+        <div class="detail-grid">
+          ${detailRow('Policy',          hit.policy)}
+          ${detailRow('Rule',            hit.policy_rule)}
+          ${detailRow('Policy Set',      hit.policy_set)}
+          ${detailRow('Namespace',       hit.policy_namespace)}
+          ${detailRow('Result',          hit.result)}
+          ${detailRow('Rate Limiter',    hit.rate_limiter_action)}
+          ${detailRow('Mitigate Action', hit.malicious_user_mitigate_action)}
+          ${detailRow('IP Risk',         hit.ip_risk)}
+          ${detailRow('Trustworthiness', hit.ip_trustworthiness)}
+          ${detailRow('Trust Score',     hit.ip_trustscore)}
+        </div>
+      </div>`).join('');
+  } else {
+    hitsHtml = '<div class="detail-empty">No policy hits recorded</div>';
+  }
+
+  const policySection = `
+    <div class="detail-section detail-signatures">
+      <div class="detail-section-title">Policy Hits</div>
+      ${hitsHtml}
+    </div>`;
+
+  return `<div class="detail-panel">${srcSection}${reqSection}${decisionSection}${policySection}</div>`;
+}
+
+/* ── Malicious User detail panel ──────────────────────────────────── */
+function buildMaliciousUserPanel(e) {
+  const srcSection = `
+    <div class="detail-section">
+      <div class="detail-section-title">Source</div>
+      <div class="detail-grid">
+        ${detailRow('IP',       e.src_ip)}
+        ${detailRow('City',     e.city)}
+        ${detailRow('Region',   e.region)}
+        ${detailRow('Country',  e.country)}
+        ${detailRow('ASN',      e.asn)}
+        ${detailRow('User',     e.user)}
+        ${detailRow('Src Site', e.src_site)}
+      </div>
+    </div>`;
+
+  const activitySection = `
+    <div class="detail-section">
+      <div class="detail-section-title">Activity</div>
+      <div class="detail-grid">
+        ${detailRow('Req Count',        e.req_count)}
+        ${detailRow('WAF Events',       e.waf_sec_event_count)}
+        ${detailRow('Bot Events',       e.bot_defense_sec_event_count)}
+        ${detailRow('Failed Logins',    e.failed_login_count)}
+        ${detailRow('Forbidden Access', e.forbidden_access_count)}
+        ${detailRow('404s',             e.page_not_found_count)}
+        ${detailRow('Rate Limited',     e.rate_limiting_count)}
+        ${detailRow('Errors',           e.err_count)}
+      </div>
+    </div>`;
+
+  const riskSection = `
+    <div class="detail-section">
+      <div class="detail-section-title">Risk</div>
+      <div class="detail-grid">
+        ${detailRow('Threat Level',       e.threat_level)}
+        ${detailRow('Suspicion Score',    e.suspicion_score)}
+        ${detailRow('WAF Score',          e.waf_suspicion_score)}
+        ${detailRow('Behavior Anomaly',   e.behavior_anomaly_score)}
+        ${detailRow('IP Reputation',      e.ip_reputation_suspicion_score)}
+        ${detailRow('Forbidden Access',   e.forbidden_access_suspicion_score)}
+        ${detailRow('Failed Login',       e.failed_login_suspicion_score)}
+        ${detailRow('Rate Limit',         e.rate_limit_suspicion_score)}
+      </div>
+    </div>`;
+
+  const decisionSection = `
+    <div class="detail-section">
+      <div class="detail-section-title">Decision</div>
+      <div class="detail-grid">
+        ${detailRow('Event Type', e.sec_event_type)}
+        ${detailRow('Action',     e.action)}
+        ${detailRow('VH Name',    e.vh_name)}
+        ${detailRow('Namespace',  e.namespace)}
+        ${detailRow('Start Time', e.start_time)}
+        ${detailRow('End Time',   e.end_time)}
+      </div>
+    </div>`;
+
+  return `<div class="detail-panel">${srcSection}${activitySection}${riskSection}${decisionSection}</div>`;
+}
+
+/* ── API Security detail panel ────────────────────────────────────── */
+function buildApiSecPanel(e) {
+  const srcSection = `
+    <div class="detail-section">
+      <div class="detail-section-title">Source</div>
+      <div class="detail-grid">
+        ${detailRow('IP',          e.src_ip)}
+        ${detailRow('City',        e.city)}
+        ${detailRow('Region',      e.region)}
+        ${detailRow('Country',     e.country)}
+        ${detailRow('ASN',         e.asn)}
+        ${detailRow('Browser',     e.browser_type)}
+        ${detailRow('Device',      e.device_type)}
+        ${detailRow('User Agent',  e.user_agent)}
+        ${detailRow('Src Site',    e.src_site)}
+        ${detailRow('TLS FP',      e.tls_fingerprint)}
+        ${detailRow('JA4 TLS FP',  e.ja4_tls_fingerprint)}
+      </div>
+    </div>`;
+
+  const reqSection = `
+    <div class="detail-section">
+      <div class="detail-section-title">Request</div>
+      <div class="detail-grid">
+        ${detailRow('Req ID',       e.req_id)}
+        ${detailRow('Authority',    e.authority)}
+        ${detailRow('Path',         e.req_path)}
+        ${detailRow('API Endpoint', e.api_endpoint)}
+        ${detailRow('Method',       e.method)}
+        ${detailRow('Req Size',     e.req_size)}
+        ${detailRow('Rsp Size',     e.rsp_size)}
+        ${detailRow('Rsp Code',     e.rsp_code)}
+        ${detailRow('Scheme',       e.scheme)}
+        ${detailRow('Protocol',     e.protocol)}
+      </div>
+    </div>`;
+
+  const detSection = `
+    <div class="detail-section">
+      <div class="detail-section-title">Detection</div>
+      <div class="detail-grid">
+        ${detailRow('Event Type',  e.sec_event_type)}
+        ${detailRow('Event Name',  e.sec_event_name)}
+        ${detailRow('Action',      e.action)}
+        ${detailRow('VH Name',     e.vh_name)}
+        ${detailRow('Req Risk',    e.req_risk)}
+      </div>
+    </div>`;
+
+  const sigSection = `
+    <div class="detail-section detail-signatures">
+      <div class="detail-section-title">Signatures</div>
+      ${buildSigsHtml(parseJsonField(e.signatures))}
+    </div>`;
+
+  return `<div class="detail-panel">${srcSection}${reqSection}${detSection}${sigSection}</div>`;
+}
+
+/* ── Generic / unknown event type panel ───────────────────────────── */
+function buildGenericPanel(e) {
+  const SKIP = new Set(['@timestamp']);
+  const rows = Object.entries(e)
+    .filter(([k, v]) => !SKIP.has(k) && v !== null && v !== undefined && v !== '')
+    .map(([k, v]) => {
+      const label   = k.replace(/_/g, ' ');
+      const display = (typeof v === 'object') ? escHtml(JSON.stringify(v)) : escHtml(String(v));
+      return `<div class="detail-label">${escHtml(label)}</div><div class="detail-value">${display}</div>`;
+    }).join('');
+
+  return `<div class="detail-panel">
+    <div class="detail-section detail-signatures">
+      <div class="detail-section-title">Event Details — ${escHtml(e.sec_event_type || 'Unknown Type')}</div>
+      <div class="detail-grid">${rows || '<div class="detail-empty">No data</div>'}</div>
+    </div>
+  </div>`;
+}
+
+/* ── Shared signature card rendering ──────────────────────────────── */
+function buildSigsHtml(sigs) {
+  if (!Array.isArray(sigs) || !sigs.length) {
+    return '<div class="detail-empty">No signatures in this event</div>';
+  }
+  return sigs.map(sig => {
+    const atkTypes = Array.isArray(sig.attack_types)
+      ? sig.attack_types.map(a => escHtml(a.name || String(a))).join(', ')
+      : escHtml(String(sig.attack_types || '—'));
+    const matchInfo = Array.isArray(sig.matching_info)
+      ? sig.matching_info.map(m => escHtml(typeof m === 'string' ? m : JSON.stringify(m))).join('; ')
+      : escHtml(String(sig.matching_info || '—'));
+    const sigBadge = (sig.state || '').toLowerCase() === 'active' ? 'badge-block' : 'badge-other';
+    return `<div class="sig-card">
+      <div class="sig-header">
+        <span class="sig-name">${escHtml(String(sig.name || sig.id || 'Signature'))}</span>
+        <span class="badge ${sigBadge}">${escHtml(sig.state || '—')}</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label">ID</div><div class="detail-value">${escHtml(String(sig.id || '—'))}</div>
+        <div class="detail-label">Attack Type</div><div class="detail-value">${atkTypes}</div>
+        <div class="detail-label">Accuracy</div><div class="detail-value">${escHtml(sig.accuracy || '—')}</div>
+        <div class="detail-label">Context</div><div class="detail-value">${escHtml(sig.context || '—')}</div>
+        <div class="detail-label">Match Info</div><div class="detail-value">${matchInfo}</div>
+        <div class="detail-label">Risk</div><div class="detail-value">${escHtml(sig.risk || '—')}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 /* ── JSON field helper (handles both raw objects and double-encoded strings) */

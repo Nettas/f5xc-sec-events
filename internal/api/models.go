@@ -73,6 +73,17 @@ type SecurityEvent struct {
 	SrcSite           string          `json:"src_site,omitempty"`
 	Src               string          `json:"src,omitempty"`
 	ReqParams         string          `json:"req_params,omitempty"`
+	// svc_policy_sec_event and api_sec_event specific fields
+	SecEventName      string          `json:"sec_event_name,omitempty"`
+	RspCodeDetails    string          `json:"rsp_code_details,omitempty"`
+	RspCodeClass      string          `json:"rsp_code_class,omitempty"`
+	ProxyType         string          `json:"proxy_type,omitempty"`
+	VhType            string          `json:"vh_type,omitempty"`
+	OriginalPath      string          `json:"original_path,omitempty"`
+	ConnectedTime     string          `json:"connected_time,omitempty"`
+	TerminatedTime    string          `json:"terminated_time,omitempty"`
+	Scheme            string          `json:"scheme,omitempty"`
+	Protocol          string          `json:"protocol,omitempty"`
 	Signatures        json.RawMessage `json:"signatures,omitempty"`
 	ReqRiskReasons    json.RawMessage `json:"req_risk_reasons,omitempty"`
 	// Complex / variable-shape fields
